@@ -40,6 +40,41 @@ Every time you reach for `@SpringBootTest` + Testcontainers, pause and ask: *"Co
 - Never lower coverage thresholds or skip tests. Use the `fix-tests` skill to resolve failures autonomously.
 - When a bug is fixed, the regression test must fail against the old code (principle 6) — verify by reverting the fix locally and re-running.
 
+## Mutation testing — PITest (on-demand, critical paths only)
+
+See `CLAUDE.md > Mutation testing` for WHEN to run. This section covers HOW. Default: don't run unless the diff is on a critical path AND non-trivial AND at a checkpoint.
+
+**One-time config** in `build.gradle` (add under `plugins`):
+```groovy
+plugins {
+  id 'info.solidsoft.pitest' version '1.15.0'
+}
+
+pitest {
+  targetClasses      = ['com.example.auth.*', 'com.example.billing.*']  // scope to critical packages
+  targetTests        = ['com.example.auth.*Test', 'com.example.billing.*Test']
+  threads            = 4
+  mutators           = ['STRONGER']
+  outputFormats      = ['HTML', 'XML']
+  timestampedReports = false
+  avoidCallsTo       = ['org.slf4j', 'java.util.logging']
+}
+```
+
+**Scoped run (reads `targetClasses` from config — normal mode):**
+```bash
+./gradlew pitest
+```
+
+**Override scope on the fly:**
+```bash
+./gradlew pitest -PtargetClasses=com.example.auth.TokenValidator
+```
+
+**Report:** `build/reports/pitest/index.html`. Look at mutation score per class — survived mutants = tests that touched the code but didn't assert the changed behavior. Fix the test, never lower the threshold.
+
+**Budget sanity:** PITest + Testcontainers is brutal. Keep `targetTests` restricted to pure unit + slice tests; full-context `@SpringBootTest` classes blow the budget fast. Never run PITest in a commit / push / CI gate — it's a review-time tool.
+
 ## Known issues
 
 `docs/troubleshooting.md` has the full catalog. Highlights:

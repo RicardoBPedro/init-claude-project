@@ -49,6 +49,30 @@ Every time you reach for Cypress, pause and ask: *"Could component + MSW cover t
 - Visible focus ring on every focusable element.
 - `<label>` bound to every form input.
 
+## Mutation testing — Stryker (on-demand, critical paths only)
+
+See `CLAUDE.md > Mutation testing` for WHEN to run. This section covers HOW. Default: don't run unless the diff is on a critical path AND non-trivial AND at a checkpoint.
+
+**One-time install + init (when first critical module qualifies):**
+```bash
+npm install --save-dev @stryker-mutator/core @stryker-mutator/vitest-runner @stryker-mutator/typescript-checker
+npx stryker init
+```
+
+**Scoped run — narrow to one critical module (the normal mode):**
+```bash
+npx stryker run --mutate "src/auth/**/*.ts,src/auth/**/*.tsx"
+```
+
+**Unscoped — whole codebase (pre-release only, very expensive):**
+```bash
+npx stryker run
+```
+
+**Report:** `reports/mutation/mutation.html`. Survived mutants = weak assertions. Fix the test, not the threshold.
+
+**Budget sanity:** if scoped run takes >10 min, tighten the `--mutate` glob further. Never block a commit or push on Stryker output — it's a review-time tool, not a gate.
+
 ## UI verification (DoD extension)
 
 Before declaring frontend work done:
