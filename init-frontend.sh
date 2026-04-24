@@ -36,7 +36,12 @@ if ui::confirm "Does this project have a staging/homolog branch?"; then
   STAGING_BRANCH=$(ui::ask "Staging branch name" "staging")
 fi
 
-export PROJECT_SUMMARY MAIN_BRANCH STAGING_BRANCH
+WITH_BRAZIL=0
+if ui::confirm "Include Brazil legal context addendum (LGPD, Marco Civil, CDC)?"; then
+  WITH_BRAZIL=1
+fi
+
+export PROJECT_SUMMARY MAIN_BRANCH STAGING_BRANCH WITH_BRAZIL
 
 # --- Confirm plan ---
 ui::section "Installation plan"
@@ -45,6 +50,7 @@ cat <<EOF
   Project type:           frontend
   Main branch:            $MAIN_BRANCH
   Staging branch:         ${STAGING_BRANCH:-<none>}
+  Brazil addendum:        $([ "$WITH_BRAZIL" = "1" ] && echo yes || echo no)
   Will create / update:
     - $target/CLAUDE.md                      (base + frontend addendum)
     - $target/docs/troubleshooting.md

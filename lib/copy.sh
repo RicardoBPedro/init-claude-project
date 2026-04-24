@@ -60,10 +60,12 @@ PY
 }
 
 # copy::md_sources <type:frontend|backend> <target_dir>
+# Reads WITH_BRAZIL env var (0/1) to decide whether to append the Brazil addendum.
 copy::md_sources() {
   local type="$1"
   local target="$2"
   local src="$__ICP_COPY_ROOT/md_sources"
+  local with_brazil="${WITH_BRAZIL:-0}"
 
   ui::info "Writing CLAUDE.md"
   mkdir -p "$target"
@@ -71,6 +73,10 @@ copy::md_sources() {
     cat "$src/CLAUDE/base.md"
     printf '\n\n---\n\n'
     cat "$src/CLAUDE/$type.md"
+    if [ "$with_brazil" = "1" ] && [ -f "$src/CLAUDE/brazil.md" ]; then
+      printf '\n\n---\n\n'
+      cat "$src/CLAUDE/brazil.md"
+    fi
   } > "$target/CLAUDE.md"
   copy::substitute "$target/CLAUDE.md" 1
 

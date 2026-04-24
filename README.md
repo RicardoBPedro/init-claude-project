@@ -30,7 +30,7 @@ cd init-claude-project
 
 Into the target project directory:
 
-- `CLAUDE.md` — universal working principles + gitflow + stack addendum (frontend or backend)
+- `CLAUDE.md` — universal working principles + gitflow + stack addendum (frontend or backend) + **optional Brazil addendum** (LGPD / Marco Civil / CDC context) if the project serves Brazilian users
 - `docs/troubleshooting.md` — recurring issues catalog (Windows Docker context, zombie Testcontainers, flaky schedulers, etc.)
 - `scripts/branch-hygiene.sh` — detect stale / forgotten local branches (no forge API)
 - `scripts/branch-start.sh` — safe branch creator (refuses to fork from stale main)
@@ -89,7 +89,8 @@ init-claude-project/
 │   ├── CLAUDE/
 │   │   ├── base.md                    universal skeleton
 │   │   ├── frontend.md                frontend addendum
-│   │   └── backend.md                 backend addendum
+│   │   ├── backend.md                 backend addendum
+│   │   └── brazil.md                  Brazil legal addendum (opt-in at install)
 │   ├── docs/
 │   │   └── troubleshooting.md         recurring-issue catalog
 │   └── memory-seeds/
@@ -149,7 +150,7 @@ The ticket prefix for TODOs (`// TODO [US-NNN]: ...`) is baked as `US`. Change i
 - CI / CD workflow files
 - Scrum folder committed to git (`docs/scrum/` is gitignored — real tracker lives in Azure DevOps or equivalent)
 - Feature-inventory maintenance discipline (opt-in via manual addendum)
-- Domain-specific skills (LGPD/BR, Asaas, WhatsApp — install manually from global `~/.claude/skills/` if relevant)
+- Payment gateway or messaging SDKs (Asaas, Stripe, WhatsApp, SendGrid, etc.) — add them per project, they're too domain-specific to template
 
 ## Updating the toolkit
 
