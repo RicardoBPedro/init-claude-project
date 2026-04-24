@@ -38,10 +38,18 @@ while [ -z "$PROJECT_SUMMARY" ]; do
   PROJECT_SUMMARY=$(ui::ask "One-line project summary")
 done
 MAIN_BRANCH=$(ui::ask "Main branch name" "main")
+while ! ui::valid_branch_name "$MAIN_BRANCH"; do
+  ui::warn "Invalid branch name: '$MAIN_BRANCH'. Must follow git rules (no whitespace, glob chars, etc)."
+  MAIN_BRANCH=$(ui::ask "Main branch name" "main")
+done
 
 STAGING_BRANCH=""
 if ui::confirm "Does this project have a staging/homolog branch?"; then
   STAGING_BRANCH=$(ui::ask "Staging branch name" "staging")
+  while ! ui::valid_branch_name "$STAGING_BRANCH"; do
+    ui::warn "Invalid branch name: '$STAGING_BRANCH'. Must follow git rules (no whitespace, glob chars, etc)."
+    STAGING_BRANCH=$(ui::ask "Staging branch name" "staging")
+  done
 fi
 
 WITH_BRAZIL=0

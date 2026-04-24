@@ -46,8 +46,10 @@ PY
   fi
 done
 
-# Not protected — run secret scan.
-if ! bash "$ROOT/scripts/check-secrets.sh" >/dev/null 2>&1; then
+# Not protected — run secret scan. Wrap in `(cd "$ROOT" && ...)` because
+# check-secrets.sh invokes git without `-C`, and Claude Code hooks may run
+# from a working directory that isn't the project root.
+if ! ( cd "$ROOT" && bash scripts/check-secrets.sh ) >/dev/null 2>&1; then
   "$PY" -c "$(cat <<'PY'
 import json
 print(json.dumps({

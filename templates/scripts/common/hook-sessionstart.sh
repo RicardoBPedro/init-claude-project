@@ -17,8 +17,11 @@ fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Capture output + exit code without letting errexit kill us.
+# Wrap in `(cd "$ROOT" && ...)` because branch-hygiene.sh invokes git without
+# `-C`, and Claude Code hooks may run from a working directory that isn't the
+# project root.
 set +e
-out=$(bash "$ROOT/scripts/branch-hygiene.sh" 2>&1)
+out=$( cd "$ROOT" && bash scripts/branch-hygiene.sh 2>&1 )
 code=$?
 set -e 2>/dev/null || true
 

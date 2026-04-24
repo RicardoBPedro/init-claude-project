@@ -101,6 +101,15 @@ ui::package_manager() {
   esac
 }
 
+# Validate a git branch name. Returns 0 if valid per git's rules, 1 otherwise.
+# Rejects empty strings, whitespace, glob characters, and anything git itself
+# wouldn't accept via `git check-ref-format`.
+ui::valid_branch_name() {
+  local name="$1"
+  [ -z "$name" ] && return 1
+  git check-ref-format --branch "$name" >/dev/null 2>&1
+}
+
 # Resolve the working python interpreter (python3 or python). Handles the
 # Windows/Microsoft-Store stub where `python3` exists in PATH but exits non-zero
 # when invoked (it prompts to install from Store).
