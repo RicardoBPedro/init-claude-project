@@ -10,10 +10,10 @@ The workflow is **local-only**: it does NOT create PRs, merge branches, push to 
 
 ```bash
 # Frontend
-bash <(curl -fsSL https://raw.githubusercontent.com/ricardobpedro/init-claude-project/main/install.sh) frontend ./my-new-app
+bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) frontend ./my-new-app
 
 # Backend
-bash <(curl -fsSL https://raw.githubusercontent.com/ricardobpedro/init-claude-project/main/install.sh) backend ./my-new-api
+bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) backend ./my-new-api
 ```
 
 The bootstrap script clones the full toolkit to `~/.init-claude-project` (or updates an existing clone) and then runs the right entry point.
@@ -21,7 +21,7 @@ The bootstrap script clones the full toolkit to `~/.init-claude-project` (or upd
 ### Local (from a clone)
 
 ```bash
-git clone https://github.com/ricardobpedro/init-claude-project.git
+git clone https://github.com/RicardoBPedro/init-claude-project.git
 cd init-claude-project
 ./init-frontend.sh ./my-new-app      # or ./init-backend.sh ./my-new-api
 ```

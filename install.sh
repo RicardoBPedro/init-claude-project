@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-REPO_URL="${ICP_REPO_URL:-https://github.com/ricardobpedro/init-claude-project.git}"
+REPO_URL="${ICP_REPO_URL:-https://github.com/RicardoBPedro/init-claude-project.git}"
 ICP_HOME="${ICP_HOME:-$HOME/.init-claude-project}"
 
 type="${1:-}"
@@ -29,7 +29,7 @@ Example:
   install.sh backend  ./my-new-api
 
 Environment:
-  ICP_REPO_URL   override the git URL (default: github.com/ricardobpedro/init-claude-project)
+  ICP_REPO_URL   override the git URL (default: github.com/RicardoBPedro/init-claude-project)
   ICP_HOME       clone location for the toolkit (default: ~/.init-claude-project)
 EOF
 }
