@@ -112,7 +112,7 @@ Never bulk-delete without inspecting each. Lost work is worse than a messy branc
 3. Committed via `--no-verify` (blame the commit author).
 4. Hook file has CRLF line endings (Windows).
 
-**Fix:** `npx husky install` + `chmod +x .husky/*` + confirm `.gitattributes` pins LF for `.sh`.
+**Fix:** `git config core.hooksPath .husky` (native git hooks, no npm needed) + `chmod +x .husky/*` + confirm `.gitattributes` pins LF for `.sh`.
 
 ## Claude Code
 

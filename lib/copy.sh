@@ -69,6 +69,20 @@ subs = {
 with open(path, "r", encoding="utf-8") as f:
     content = f.read()
 
+# Step 0: if STAGING_BRANCH is empty, the templates would render empty backticks
+# (in markdown: "`develop` / `` / `main`") or trailing/duplicate tokens (in
+# scripts: "PROTECTED='main ... develop main '"). Collapse those surrounding
+# patterns BEFORE the generic placeholder replacement so the output is clean.
+if not subs["{{STAGING_BRANCH}}"]:
+    for pat in (
+        " / `{{STAGING_BRANCH}}`",
+        "`{{STAGING_BRANCH}}` / ",
+        ", `{{STAGING_BRANCH}}`",
+        "`{{STAGING_BRANCH}}`, ",
+        " {{STAGING_BRANCH}}",   # leading-space form used inside shell strings
+    ):
+        content = content.replace(pat, "")
+
 # Step 1: substitute placeholders. For JSON this produces valid JSON; for
 # markdown it fills in project metadata.
 for k, v in subs.items():

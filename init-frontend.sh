@@ -92,7 +92,8 @@ copy::memory_seeds              "$target"
 # --- Next steps ---
 ui::section "Done"
 
-if git -C "$target" rev-parse --git-dir >/dev/null 2>&1; then
+if [ -e "$target/.git" ]; then
+  # Target is the ROOT of a git repo — copy::husky already wired core.hooksPath.
   hooks_step="# Hooks already wired (core.hooksPath=.husky configured above)"
 else
   hooks_step="git init -b $MAIN_BRANCH && git config core.hooksPath .husky"

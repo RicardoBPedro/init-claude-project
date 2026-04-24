@@ -76,9 +76,13 @@ while IFS= read -r file; do
   done
 
   if echo "$file" | grep -qE "$YAML_PATTERNS"; then
-    # YAML: ignore lines with ${...} env var refs or empty values.
+    # YAML: ignore comment lines (# ...), ${...} env var refs, and empty values.
     for pattern in "${PATTERNS[@]}"; do
-      matches=$(grep -nE "$pattern" "$file" 2>/dev/null | grep -vF '${' | grep -vE ':\s*$' || true)
+      matches=$(grep -nE "$pattern" "$file" 2>/dev/null \
+        | grep -vE '^[0-9]+:[[:space:]]*#' \
+        | grep -vF '${' \
+        | grep -vE ':\s*$' \
+        || true)
       if [ -n "$matches" ]; then
         line=$(echo "$matches" | head -1)
         echo "BLOCKED: potential hardcoded secret in $file: $line"
@@ -86,9 +90,13 @@ while IFS= read -r file; do
       fi
     done
   else
+    # Non-YAML: ignore comment lines (# or //) when matching content patterns.
     for pattern in "${PATTERNS[@]}"; do
-      if grep -qE "$pattern" "$file" 2>/dev/null; then
-        line=$(grep -nE "$pattern" "$file" | head -1)
+      matches=$(grep -nE "$pattern" "$file" 2>/dev/null \
+        | grep -vE '^[0-9]+:[[:space:]]*(#|//)' \
+        || true)
+      if [ -n "$matches" ]; then
+        line=$(echo "$matches" | head -1)
         echo "BLOCKED: potential secret in $file: $line"
         SECRETS_FOUND=1
       fi

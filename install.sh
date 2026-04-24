@@ -67,6 +67,14 @@ fi
 
 if [ -d "$ICP_HOME/.git" ]; then
   echo "[i] Updating existing checkout at $ICP_HOME (ref: $REPO_REF)"
+  # Warn if there are uncommitted changes — `reset --hard` will destroy them.
+  if ! git -C "$ICP_HOME" diff --quiet HEAD 2>/dev/null || ! git -C "$ICP_HOME" diff --cached --quiet HEAD 2>/dev/null; then
+    echo ""
+    echo "[!] $ICP_HOME has uncommitted local changes. Updating will discard them."
+    echo "    Press Ctrl-C within 5 seconds to abort."
+    echo ""
+    sleep 5
+  fi
   git -C "$ICP_HOME" fetch --quiet origin "$REPO_REF"
   git -C "$ICP_HOME" reset --hard --quiet FETCH_HEAD
 else
