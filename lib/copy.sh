@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# copy.sh — file operations: copy templates, substitute placeholders, seed memory.
-# Sourced by init-frontend.sh / init-backend.sh. Don't run directly.
+# copy.sh — file operations: conflict detection, template copy, placeholder
+# substitution, project-local memory seeding. Sourced by init-frontend.sh /
+# init-backend.sh. Don't run directly.
 
 set -euo pipefail
 
@@ -9,6 +10,44 @@ __ICP_COPY_ROOT="$(cd "$__ICP_COPY_DIR/.." && pwd)"
 
 # shellcheck source=./ui.sh
 source "$__ICP_COPY_DIR/ui.sh"
+
+# copy::check_conflicts <target_dir>
+# Aborts if any file the installer would overwrite already exists. Runs BEFORE
+# prompts / copy, so the user fails fast and doesn't waste time answering.
+copy::check_conflicts() {
+  local target="$1"
+  local conflicts=()
+
+  # Files written directly
+  [ -f "$target/CLAUDE.md" ]                 && conflicts+=("CLAUDE.md")
+  [ -f "$target/docs/troubleshooting.md" ]   && conflicts+=("docs/troubleshooting.md")
+  [ -f "$target/.claude/settings.json" ]     && conflicts+=(".claude/settings.json")
+
+  # Scripts we install by name
+  local s
+  for s in branch-hygiene.sh branch-start.sh check-secrets.sh check-todo-budget.sh seed-memory.sh test-backend.sh; do
+    [ -f "$target/scripts/$s" ] && conflicts+=("scripts/$s")
+  done
+
+  # Husky hooks
+  local h
+  for h in commit-msg pre-push pre-commit; do
+    [ -f "$target/.husky/$h" ] && conflicts+=(".husky/$h")
+  done
+
+  if [ ${#conflicts[@]} -gt 0 ]; then
+    ui::error "Target directory already contains files this installer would overwrite:"
+    local f
+    for f in "${conflicts[@]}"; do
+      printf '  - %s/%s\n' "$target" "$f" >&2
+    done
+    echo "" >&2
+    ui::dim "  To proceed: back up / remove the conflicting files, or choose a fresh target directory." >&2
+    ui::dim "  This installer deliberately refuses to overwrite existing config to protect your work." >&2
+    return 1
+  fi
+  return 0
+}
 
 # copy::substitute <file> [strip_meta]
 # Replaces placeholders in-place using env vars:
@@ -33,7 +72,7 @@ with open(path, "r", encoding="utf-8") as f:
     content = f.read()
 
 if strip:
-    # Strip HTML comments (<!-- ... -->) — used in md_sources for template bookkeeping.
+    # Strip HTML comments (<!-- ... -->) — template bookkeeping.
     content = re.sub(r"<!--.*?-->\s*", "", content, flags=re.DOTALL)
     # For JSON files, drop top-level `_comment` keys.
     if path.endswith(".json") or path.endswith(".tmpl"):
@@ -49,7 +88,7 @@ if strip:
                 data = clean(data)
                 content = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
         except json.JSONDecodeError:
-            pass  # Not valid JSON yet (has placeholders) — fall through to plain replace.
+            pass  # Not valid JSON yet (has placeholders) — fall through.
 
 for k, v in subs.items():
     content = content.replace(k, v)
@@ -87,51 +126,53 @@ copy::md_sources() {
 }
 
 # copy::memory_seeds <target_dir>
-# Claude Code memory path is ~/.claude/projects/<hashed-project-path>/memory/
-# where hashed replaces every non-alphanumeric char with "-", collapsing runs.
+# Writes universal memory seeds into $target/.claude/memory-seeds/. Claude
+# Code's actual memory dir is ~/.claude/projects/<hashed-path>/memory/, which
+# Claude creates lazily on first session. scripts/seed-memory.sh (installed
+# separately) handles the final copy with correct cross-platform hashing.
+#
+# This indirection avoids the risk of writing to a wrong hashed directory if
+# the OS-specific hashing assumption is off — seeds are safely placed in a
+# deterministic project-local path first.
 copy::memory_seeds() {
   local target="$1"
-  local abs
-  abs=$(ui::abs_path "$target")
-
-  local hashed
-  hashed=$(ICP_ABS="$abs" "$(ui::python)" -c '
-import os, re
-p = os.environ["ICP_ABS"].strip()
-# Lowercase a leading drive letter (Windows form: C:\Users → c:\Users).
-if len(p) >= 2 and p[1] == ":":
-    p = p[0].lower() + p[1:]
-# Replace runs of non-alphanumeric with "-", strip edge dashes.
-hashed = re.sub(r"[^A-Za-z0-9]+", "-", p).strip("-")
-print(hashed)
-')
-  local mem_dir="$HOME/.claude/projects/$hashed/memory"
-  ui::info "Seeding memory at $mem_dir"
-  mkdir -p "$mem_dir"
-
   local src="$__ICP_COPY_ROOT/md_sources/memory-seeds"
+  local dest="$target/.claude/memory-seeds"
+
+  ui::info "Writing memory seeds to .claude/memory-seeds/"
+  mkdir -p "$dest"
   local f name
   for f in "$src"/*.md; do
     name=$(basename "$f")
-    # MEMORY.md (index) is handled separately below — skip here.
-    [ "$name" = "MEMORY.md" ] && continue
-    if [ -e "$mem_dir/$name" ]; then
-      ui::dim "  skip $name (already exists)"
-      continue
-    fi
-    cp "$f" "$mem_dir/$name"
-    ui::dim "  + $name"
+    cp "$f" "$dest/$name"
   done
 
-  # MEMORY.md: create if missing, otherwise write as MEMORY.md.seed for manual merge.
-  local idx_src="$src/MEMORY.md"
-  if [ -f "$mem_dir/MEMORY.md" ]; then
-    cp "$idx_src" "$mem_dir/MEMORY.md.seed"
-    ui::warn "memory/MEMORY.md exists — seed written to MEMORY.md.seed for manual merge"
-  else
-    cp "$idx_src" "$mem_dir/MEMORY.md"
-    ui::dim "  + MEMORY.md"
-  fi
+  # Drop a README explaining purpose + activation step.
+  cat > "$dest/README.md" <<'EOF'
+# Memory seeds
+
+Universal Claude Code memories (feedback + references) bundled with this project by `init-claude-project`.
+
+Claude Code stores project memory at `~/.claude/projects/<hashed-project-path>/memory/`. The dir is created lazily on the first Claude session in this project.
+
+## Activation
+
+After running `claude` at least once in this project (so Claude creates the memory dir), run:
+
+```bash
+bash scripts/seed-memory.sh
+```
+
+That script computes the hashed path correctly for your OS and copies each file under this folder into Claude's real memory dir, skipping files that already exist.
+
+## What's in here
+
+- `feedback_*.md` — 6 universal feedback memories (branch hygiene, coverage ratchet, Opus for audits, docs-with-code, Claude config authorization, global vs project skills)
+- `reference_testing_standard.md` — testing discipline summary (6 principles + zero-tolerance)
+- `MEMORY.md` — index that gets prepended to the project's MEMORY.md
+
+Review these before activating. Edit freely — they're yours.
+EOF
 }
 
 # copy::scripts <type> <target_dir>
@@ -158,7 +199,7 @@ copy::husky() {
   local src="$__ICP_COPY_ROOT/templates/husky"
 
   mkdir -p "$target/.husky"
-  ui::info "Installing .husky/"
+  ui::info "Installing .husky/ (native git hooks, no npm dependency)"
   if [ -d "$src/common" ]; then
     cp -R "$src/common/." "$target/.husky/"
   fi
@@ -166,6 +207,13 @@ copy::husky() {
     cp -R "$src/$type/." "$target/.husky/"
   fi
   find "$target/.husky" -type f ! -name '*.md' -exec chmod +x {} + 2>/dev/null || true
+
+  # If target is already a git repo, wire hooksPath immediately — otherwise
+  # the post-install instructions explain how to do it after git init.
+  if git -C "$target" rev-parse --git-dir >/dev/null 2>&1; then
+    git -C "$target" config core.hooksPath .husky
+    ui::ok "Configured core.hooksPath=.husky in the existing git repo"
+  fi
 }
 
 # copy::claude_settings <type> <target_dir>
@@ -187,13 +235,13 @@ copy::claude_settings() {
 
 # copy::root_files <target_dir>
 # Copies files that live at target root (currently just .gitattributes).
+# Skips existing files — doesn't overwrite user's own root config.
 copy::root_files() {
   local target="$1"
   local src="$__ICP_COPY_ROOT/templates/root"
   [ -d "$src" ] || return 0
   ui::info "Installing root config files"
   local f name
-  # Iterate visible + dotfiles separately — bash globs don't mix them cleanly.
   for f in "$src"/* "$src"/.[!.]*; do
     [ -e "$f" ] || continue
     name=$(basename "$f")

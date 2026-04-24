@@ -23,12 +23,20 @@ fi
 ui::section "init-claude-project — frontend"
 ui::info "Target: $target"
 
-# --- Preflight ---
+# --- Preflight: tools + globals ---
 preflight::run frontend || exit 1
 
-# --- Gather interactive inputs (minimal — the rest are baked defaults) ---
+# --- Pre-copy: abort if any target file we'd write already exists ---
+mkdir -p "$target"
+copy::check_conflicts "$target" || exit 1
+
+# --- Gather interactive inputs ---
 ui::section "Project settings"
 PROJECT_SUMMARY=$(ui::ask "One-line project summary (e.g. 'Internal billing dashboard.')")
+while [ -z "$PROJECT_SUMMARY" ]; do
+  ui::warn "Project summary can't be empty — it anchors the project's CLAUDE.md."
+  PROJECT_SUMMARY=$(ui::ask "One-line project summary")
+done
 MAIN_BRANCH=$(ui::ask "Main branch name" "main")
 
 STAGING_BRANCH=""
@@ -51,20 +59,19 @@ cat <<EOF
   Main branch:            $MAIN_BRANCH
   Staging branch:         ${STAGING_BRANCH:-<none>}
   Brazil addendum:        $([ "$WITH_BRAZIL" = "1" ] && echo yes || echo no)
-  Will create / update:
+  Will create:
     - $target/CLAUDE.md                      (base + frontend addendum)
     - $target/docs/troubleshooting.md
-    - $target/scripts/*                       (branch-hygiene.sh, check-secrets.sh, branch-start.sh)
-    - $target/.husky/*                        (commit-msg, pre-commit, pre-push)
+    - $target/scripts/*.sh                    (branch-hygiene, branch-start, check-secrets, check-todo-budget, seed-memory)
+    - $target/.husky/{commit-msg,pre-push,pre-commit}
     - $target/.claude/settings.json           (SessionStart + pre-push hooks)
+    - $target/.claude/memory-seeds/*.md       (7 universal seeds — activate via scripts/seed-memory.sh post-install)
+    - $target/.gitattributes                  (pin LF for .sh / .husky)
     - $target/.gitignore                      (append Claude-related entries)
-    - ~/.claude/projects/<hashed>/memory/*.md  (7 universal memory seeds)
 EOF
 ui::confirm "Proceed with installation?" 1 || { ui::warn "Aborted by user."; exit 0; }
 
 # --- Install ---
-mkdir -p "$target"
-
 ui::section "Writing files"
 copy::md_sources       frontend "$target"
 copy::scripts          frontend "$target"
@@ -76,22 +83,35 @@ copy::memory_seeds              "$target"
 
 # --- Next steps ---
 ui::section "Done"
+
+if git -C "$target" rev-parse --git-dir >/dev/null 2>&1; then
+  hooks_step="# Hooks already wired (core.hooksPath=.husky configured above)"
+else
+  hooks_step="git init -b $MAIN_BRANCH && git config core.hooksPath .husky"
+fi
+
 cat <<EOF
 Next steps:
 
   cd $target
-  git init -b $MAIN_BRANCH                          # if not already a repo
-  npm install                                       # install frontend deps (when package.json exists)
-  npx husky install                                 # activate git hooks
+  $hooks_step
+  # Install frontend deps (if package.json exists / after npm init):
+  npm install
   git add .
-  git commit -m "chore: bootstrap Claude Code workflow"
+  git commit -m "chore: bootstrap do workflow Claude Code"
 
-Review before first commit:
-  - CLAUDE.md                                       (validate project summary, branch names)
-  - .claude/settings.json                           (hook paths use absolute root — verify)
-  - docs/troubleshooting.md                         (delete sections that don't apply to your host OS)
+After your first Claude Code session in this project (Claude creates its
+memory dir lazily), run this ONCE to seed the universal memories:
 
-Read:
-  - CLAUDE.md > Working principles + Gitflow
+  bash scripts/seed-memory.sh
+
+Review before your first commit:
+  - CLAUDE.md                                       validate the project summary + branch names
+  - .claude/settings.json                           hook paths use your absolute project root
+  - .claude/memory-seeds/                           universal memories — edit before seeding if you like
+  - docs/troubleshooting.md                         drop sections that don't apply to your host OS
+
+Read first:
+  - CLAUDE.md > Working principles + Gitflow (local-only workflow)
   - docs/troubleshooting.md > Environment section
 EOF

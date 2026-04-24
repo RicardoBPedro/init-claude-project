@@ -3,14 +3,33 @@
 # Exit 1 if secrets found, 0 if clean.
 #
 # Called from .husky/pre-push and from Claude Code's PreToolUse hook on git push.
+#
+# Scope resolution (first match wins):
+#   1. If the branch has an upstream ref that exists: diff upstream..HEAD
+#   2. Else if there's a previous commit (HEAD~1): diff HEAD~1..HEAD
+#   3. Else (first commit ever being pushed): scan ALL tracked files
+#      (prevents secrets in the initial commit from slipping through)
 
 set -u
 
 SECRETS_FOUND=0
+FILES=""
 
-# Files about to be pushed (diff against upstream, excluding deletions).
-REMOTE=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "origin/$(git rev-parse --abbrev-ref HEAD)")
-FILES=$(git diff --name-only --diff-filter=d "$REMOTE"...HEAD 2>/dev/null || git diff --name-only --diff-filter=d HEAD~1 2>/dev/null || echo "")
+REMOTE=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)
+if [ -n "$REMOTE" ] && git rev-parse --verify "$REMOTE" >/dev/null 2>&1; then
+  FILES=$(git diff --name-only --diff-filter=d "$REMOTE"..HEAD 2>/dev/null || true)
+fi
+
+if [ -z "$FILES" ]; then
+  if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+    FILES=$(git diff --name-only --diff-filter=d HEAD~1..HEAD 2>/dev/null || true)
+  fi
+fi
+
+if [ -z "$FILES" ]; then
+  # First push on this branch AND no parent — scan all tracked files.
+  FILES=$(git ls-files)
+fi
 
 [ -z "$FILES" ] && exit 0
 
@@ -55,7 +74,7 @@ for file in $FILES; do
   done
 
   if echo "$file" | grep -qE "$YAML_PATTERNS"; then
-    # YAML: ignore lines with ${...} env var refs or empty values
+    # YAML: ignore lines with ${...} env var refs or empty values.
     for pattern in "${PATTERNS[@]}"; do
       matches=$(grep -nE "$pattern" "$file" 2>/dev/null | grep -vF '${' | grep -vE ':\s*$' || true)
       if [ -n "$matches" ]; then
