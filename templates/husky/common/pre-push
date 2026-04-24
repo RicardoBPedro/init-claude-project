@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 branch=$(git rev-parse --abbrev-ref HEAD)
 
-# Block direct push to protected branches.
+# Protected branches — no direct push (integration happens via pipeline).
 case "$branch" in
   main|master|homolog|staging|develop)
     echo ""
@@ -10,9 +10,22 @@ case "$branch" in
     echo ""
     exit 1
     ;;
+  feat/*|fix/*|refactor/*|chore/*|test/*|docs/*|perf/*|style/*)
+    : # Conforms to the naming convention.
+    ;;
+  *)
+    echo ""
+    echo "ERROR: Branch name '$branch' doesn't match the naming convention."
+    echo "Expected prefix: feat/, fix/, refactor/, chore/, test/, docs/, perf/, style/"
+    echo "See CLAUDE.md > Gitflow."
+    echo ""
+    echo "Fix: rename with 'git branch -m $branch <prefix>/<slug>' before pushing."
+    echo ""
+    exit 1
+    ;;
 esac
 
-# Secret scan
+# Secret scan.
 if [ -f scripts/check-secrets.sh ]; then
   bash scripts/check-secrets.sh || exit 1
 fi

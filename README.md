@@ -32,13 +32,14 @@ Into the target project directory:
 
 - `CLAUDE.md` — universal working principles + gitflow + stack addendum (frontend or backend) + **optional Brazil addendum** (LGPD / Marco Civil / CDC context) if the project serves Brazilian users
 - `docs/troubleshooting.md` — recurring issues catalog (Windows Docker context, zombie Testcontainers, flaky schedulers, etc.)
-- `scripts/branch-hygiene.sh` — detect stale / forgotten local branches (no forge API)
+- `scripts/branch-hygiene.sh` — detect stale / forgotten / non-main-forked local branches (strictly local, no forge API)
 - `scripts/branch-start.sh` — safe branch creator (refuses to fork from stale main)
 - `scripts/check-secrets.sh` — pre-push secret scan
+- `scripts/check-todo-budget.sh` — pre-commit check for un-IDed TODO / FIXME in staged changes
 - `scripts/test-backend.sh` — *(backend only)* gradle wrapper with Docker context fix for Windows
-- `.husky/commit-msg` — conventional-commits enforcer
-- `.husky/pre-push` — block direct push to protected branches + run check-secrets
-- `.husky/pre-commit` — lint-staged (frontend) or spotless check (backend)
+- `.husky/commit-msg` — conventional-commits enforcer (format + length, language is documented convention)
+- `.husky/pre-push` — block direct push to protected branches + validate branch naming (`feat/`, `fix/`, etc.) + run check-secrets
+- `.husky/pre-commit` — check-todo-budget + lint-staged (frontend) or spotless check (backend)
 - `.claude/settings.json` — SessionStart hook (branch-hygiene) + PreToolUse Bash hook (block push + secrets)
 - `.gitattributes` — pin LF for `.sh`, `.bash`, `.husky/*` (avoids Windows CRLF breakage)
 - `.gitignore` — appended entries for `.claude/settings.local.json`, `.remember/`, `docs/scrum/`

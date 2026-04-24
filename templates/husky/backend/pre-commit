@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Backend pre-commit: light sanity check.
-# Full test suite is too slow for a pre-commit hook — use CI or a post-commit
-# hook for that. Here we only run fast checks (formatting / spotless if present).
+# Backend pre-commit. Full test suite is too slow here — keep checks fast.
 
+# 1. TODO budget — flag un-IDed TODO/FIXME in staged changes.
+if [ -f scripts/check-todo-budget.sh ]; then
+  bash scripts/check-todo-budget.sh || exit 1
+fi
+
+# 2. Spotless / formatter check if configured (10-20s typically).
 if [ -f build.gradle ] || [ -f build.gradle.kts ]; then
-  # Run spotless check if available (10-20s typically).
   if grep -qE '(spotless|ktlint|googleJavaFormat)' build.gradle* 2>/dev/null; then
     ./gradlew spotlessCheck --quiet 2>/dev/null || {
       echo ""
