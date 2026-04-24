@@ -38,7 +38,7 @@ Every time you reach for Cypress, pause and ask: *"Could component + MSW cover t
 - Auth mocks must include `ok: true` and `accessToken`.
 - Prefer `getByRole` / `data-testid` over `getByText` to avoid ambiguity.
 - Tests that set a session in `localStorage` must also set the refresh token and include `role` in the session JSON.
-- Never lower coverage thresholds or skip tests. Use the `fix-tests` skill to resolve failures autonomously.
+- Never lower coverage thresholds or skip tests. When a test fails, diagnose the root cause — don't disable the test or loosen the threshold.
 - **Run only tests impacted by your change.** `npx vitest run <path>` during development. Full-suite runs need user approval.
 
 ## Accessibility baseline

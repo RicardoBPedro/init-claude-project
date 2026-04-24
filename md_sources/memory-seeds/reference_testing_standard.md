@@ -1,13 +1,10 @@
 ---
-name: Global testing standard
+name: Testing standard (six principles)
 description: Six principles + zero-tolerance rules; read before writing any test
 type: reference
 ---
 
-Before writing or modifying any test, read the global testing standard:
-
-- **Global (language-agnostic):** `~/.claude/docs/testing-standard.md` — loaded alongside CLAUDE.md in every session.
-- **Project companion (stack-specific idioms, if present):** `docs/development/testing-standard.md`.
+Before writing or modifying any test, apply these principles. They live in full in the project's `CLAUDE.md > Testing discipline` section and (optionally) in `docs/development/testing-standard.md` with stack-specific idioms.
 
 **Six principles (ranked — top wins):**
 1. Tests guarantee a business rule — coverage is a signal, not a goal.

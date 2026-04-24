@@ -13,4 +13,4 @@ Coverage threshold is a **ratchet — up only**. Never lower it to make a failin
 - If existing tests are flaky or slow, fix them or delete them — don't mask by lowering the bar.
 - New features ship with tests that would FAIL against the pre-feature code (proves the test exercises the new path).
 - Bug fixes ship with a regression test that FAILS against the pre-fix code.
-- Never disable tests to unblock a merge. Use the `fix-tests` skill to resolve failures autonomously.
+- Never disable tests to unblock a merge. Diagnose the root cause of the failure and fix it.

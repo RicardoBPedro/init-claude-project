@@ -37,7 +37,7 @@ Every time you reach for `@SpringBootTest` + Testcontainers, pause and ask: *"Co
 
 - Scheduler tests must inject a `Clock.fixed(...)` — never rely on wall clock.
 - Security assertions (401 / 403 / CORS) consolidate into a **single filter-chain contract test** — don't scatter across feature tests.
-- Never lower coverage thresholds or skip tests. Use the `fix-tests` skill to resolve failures autonomously.
+- Never lower coverage thresholds or skip tests. When a test fails, diagnose the root cause — don't disable the test or loosen the threshold.
 - When a bug is fixed, the regression test must fail against the old code (principle 6) — verify by reverting the fix locally and re-running.
 
 ## Mutation testing — PITest (on-demand, critical paths only)

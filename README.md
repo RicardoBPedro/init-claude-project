@@ -68,8 +68,9 @@ Before installing, the script validates:
 
 **Claude Code globals (warn-only, non-fatal):**
 - `~/.claude/CLAUDE.md`, `~/.claude/settings.json` — required
-- `~/.claude/agents/audit-*` (10 agents) — recommended
-- Enabled plugins: `superpowers`, `code-review`, `feature-dev`, `pr-review-toolkit`, `claude-md-management`, `commit-commands`, `remember`
+- Enabled plugins (public, from `claude-plugins-official`): `superpowers`, `code-review`, `feature-dev`, `pr-review-toolkit`, `claude-md-management`, `commit-commands`, `remember`
+
+**Nothing else is installed or assumed.** The toolkit does NOT bundle or depend on any project-local skill / agent (bmad, fix-tests, legislacao-digital-br, pre-push-quality-gate, etc.). If you author your own, add them to `.claude/` in the target project and reference them in `CLAUDE.md` — that's out of this toolkit's scope.
 
 Missing required tools trigger an interactive autoinstall prompt (with the exact command shown). Declining cancels the install.
 

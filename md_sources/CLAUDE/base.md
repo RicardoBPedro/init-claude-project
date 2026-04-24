@@ -177,10 +177,9 @@ Stack-specific DoD extensions live in the addendum.
 
 ## Testing discipline
 
-**Global principles:** `~/.claude/docs/testing-standard.md` (language-agnostic, loaded in every session).
-**Project-specific idioms:** `docs/development/testing-standard.md` (if present).
+**Project-specific idioms** (if present): `docs/development/testing-standard.md`.
 
-**Six principles** (full text in the testing-standard docs):
+**Six principles** (summary below; same as any good testing standard):
 1. Tests exist to guarantee a business rule still holds — coverage is a signal, not a goal.
 2. Pick the lightest layer where the rule *reads* naturally. Unit > slice > integration.
 3. Slow tests only for emergent behaviour — integration has a budget. Full-stack tests (Testcontainers, `@SpringBootTest`, Cypress, Playwright) are last resort, not default.
@@ -195,7 +194,7 @@ Stack-specific DoD extensions live in the addendum.
 Mutation testing catches tests that execute code without asserting meaningfully — the "passes coverage but verifies nothing" smell that plain coverage can't detect. It's expensive (the test suite re-runs once per mutant) so it **does NOT belong in the default commit / push / CI loop**.
 
 **Run mutation testing only when ALL three conditions hold:**
-1. The code is on a **critical path** — authentication, authorization, money (payments, refunds, ledger, commissions), state machines, data-integrity invariants, security-sensitive decisions. Same scope the `bmad-edge-case-hunter` skill targets.
+1. The code is on a **critical path** — authentication, authorization, money (payments, refunds, ledger, commissions), state machines, data-integrity invariants, security-sensitive decisions.
 2. The change is **non-trivial** — meaningful behavior change, not rename / comment / formatting / import shuffle.
 3. You're at a **checkpoint** — pre-release, pre-merge of a high-stakes feature, post-incident review, or an explicit audit request.
 
@@ -216,13 +215,19 @@ Stack-specific tooling (Stryker for JS/TS, PITest for Java) lives in the stack a
 
 ## Workflow skills/agents
 
-Available if the global Claude Code setup exposes them (`~/.claude/agents/`, `~/.claude/skills/`, enabled plugins):
+These come from **public Claude Code plugins** — preflight warns if the plugin isn't enabled in `~/.claude/settings.json`. Nothing here is bundled with this toolkit; it's all external.
 
-- **Bug investigation** → `systematic-debugging` skill (reproduce → isolate → diagnose → fix → verify). Never guess.
-- **Post-mortem** (after a real bug is fixed) → `bmad-rca` skill. Produces `docs/bmad/rca/YYYY-MM-DD-<slug>.md`. Commit alone.
-- **Post-feature review** → `feature-dev:code-reviewer` agent or `/review-pr` before declaring done.
-- **Critical-path review** (financial / auth / state-machine diffs) → `bmad-edge-case-hunter` skill. Invoke explicitly for money, security, or state-machine code.
-- **Pre-push quality** → `pre-push-quality-gate` + `security-audit` agents run via hooks.
+- **Bug investigation** → `systematic-debugging` skill (plugin: `superpowers`). Reproduce → isolate → diagnose → fix → verify. Never guess.
+- **Post-feature review** → `feature-dev:code-reviewer` agent (plugin: `feature-dev`) or `/review-pr` command (plugin: `pr-review-toolkit`). Run before declaring done.
+- **Plan before coding** → `writing-plans` skill (plugin: `superpowers`) for multi-step tasks.
+- **Execute plans with checkpoints** → `executing-plans` skill (plugin: `superpowers`).
+
+**Project-authored skills / agents** (if your project has `.claude/skills/` or `.claude/agents/`): reference them by name here. Common examples you may wire up yourself:
+- A post-mortem skill (produces `docs/bmad/rca/YYYY-MM-DD-<slug>.md` after a real bug fix)
+- A critical-path edge-case hunter for financial / auth / state-machine diffs
+- A pre-push quality gate agent invoked by the `.claude/settings.json` PreToolUse hook
+
+The installer does NOT ship these — they're per-project authoring. Add them as you grow.
 
 ## Troubleshooting
 

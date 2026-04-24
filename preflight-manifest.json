@@ -97,27 +97,11 @@
         "path": "~/.claude/settings.json",
         "required": true,
         "note": "Global permissions, enabled plugins, default model."
-      },
-      {
-        "path": "~/.claude/docs/testing-standard.md",
-        "required": false,
-        "note": "Referenced by project CLAUDE.md. If missing, the project's testing-standard link will 404."
       }
     ],
     "agents": {
-      "_comment": "Checked as files under ~/.claude/agents/<name>.md. Missing agents don't fail preflight — they just disable related workflows.",
-      "recommended": [
-        "audit-orchestrator",
-        "audit-inventory",
-        "audit-security",
-        "audit-quality",
-        "audit-architecture",
-        "audit-performance",
-        "audit-qa",
-        "audit-config",
-        "audit-process",
-        "audit-worker"
-      ]
+      "_comment": "Recommended global agents that are NOT bundled with any public plugin. This toolkit does not install them — they're user-authored tooling. Listed only so the preflight can warn if a project's generated CLAUDE.md references a specific agent by name and it's missing. The default list is empty; add your own recommendations if you author reusable agents.",
+      "recommended": []
     },
     "plugins": {
       "_comment": "Recommended plugins enabled via ~/.claude/settings.json > enabledPlugins. Missing plugins don't fail preflight — they just disable related commands.",
