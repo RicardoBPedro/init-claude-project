@@ -2,7 +2,7 @@
 
 <!--
   Universal skeleton. This file is concatenated with stack addendums
-  (frontend.md / backend.md) and any opted-in addendums (brazil, asaas)
+  (frontend.md / backend.md) and any opted-in addendums (brazil)
   at install time to produce the final <project>/CLAUDE.md.
 
   Placeholders substituted by the installer:
@@ -99,7 +99,8 @@ This Claude workflow controls **local discipline only**. Integration flow (merge
 - Create PRs
 - Merge branches
 - Push to remote automatically
-- Interact with any forge (GitHub/GitLab/Azure/Bitbucket) — network calls are limited to `git fetch` to read context
+- Interact with any forge (GitHub / GitLab / Azure DevOps / Bitbucket) — no PR / issue / merge API calls
+- Make automated network calls — hygiene scripts are strictly local. `git fetch` / `git push` happen only when the user invokes them or runs `scripts/branch-start.sh` explicitly.
 
 Push, PR, merge, and pipeline triggering are **manual user actions** or pipeline responsibilities.
 
@@ -116,10 +117,10 @@ git checkout -b feat/<short-description>
 
 ### Branch hygiene (NON-NEGOTIABLE)
 
-Stale / forgotten branches are the main local failure mode. Run `scripts/branch-hygiene.sh` at session start and before handoff. It is **local-only** (no forge API calls) and reports:
+Stale / forgotten branches are the main local failure mode. Run `scripts/branch-hygiene.sh` at session start and before handoff. It is **strictly local** — no `git fetch`, no forge API calls, no inspection of `origin/*` refs — so it works offline and never waits on the network. Reports:
 - Branches older than `STALE_DAYS` (default 7) — review, rebase, or delete.
 - Branches whose merge-base with `{{MAIN_BRANCH}}` is older than `STALE_BASE_DAYS` (default 30) — likely forked from outdated state.
-- Unpushed local commits on non-protected branches — informational.
+- Branches forked from something other than `{{MAIN_BRANCH}}` (e.g. `develop`) — violates the "branch from main" rule (`scripts/branch-start.sh` prevents this at creation time).
 
 Bump thresholds per invocation: `STALE_DAYS=14 bash scripts/branch-hygiene.sh`.
 
@@ -127,7 +128,7 @@ Bump thresholds per invocation: `STALE_DAYS=14 bash scripts/branch-hygiene.sh`.
 
 ## Commit Convention
 
-Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `style:`, `perf:`. Scope when relevant (`feat(auth): ...`). Subject under 72 chars, English. Husky `commit-msg` enforces.
+Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `style:`, `perf:`. Scope when relevant (`feat(auth): ...`). Subject under 72 chars, Portuguese PT-br. Husky `commit-msg` enforces.
 
 ## TODO budget
 

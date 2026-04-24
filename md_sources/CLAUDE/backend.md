@@ -12,7 +12,7 @@ This section supplements the core CLAUDE.md rules with backend-specific commands
 
 ```bash
 ./gradlew bootRun                                               # default profile
-./gradlew bootRun --args='--spring.profiles.active=postgres'    # PostgreSQL profile
+./gradlew bootRun --args='--spring.profiles.active=dev'         # Dev profile
 docker compose up -d                                            # local services (if compose present)
 bash scripts/test-backend.sh                                    # full suite (wrapper — handles docker context + wrapper selection)
 bash scripts/test-backend.sh --tests "FQCN"                     # single class
@@ -39,12 +39,6 @@ Every time you reach for `@SpringBootTest` + Testcontainers, pause and ask: *"Co
 - Security assertions (401 / 403 / CORS) consolidate into a **single filter-chain contract test** — don't scatter across feature tests.
 - Never lower coverage thresholds or skip tests. Use the `fix-tests` skill to resolve failures autonomously.
 - When a bug is fixed, the regression test must fail against the old code (principle 6) — verify by reverting the fix locally and re-running.
-
-## Migration discipline (Flyway / Liquibase)
-
-Entity changes require a matching migration in the same PR. `ddl-auto=update` on H2 masks missing migrations in dev — validate against a clean database before PR approval.
-
-**Smoke test:** drop the dev DB, run the app from scratch, confirm boot + one smoke path. If the app fails on a missing column, the migration is missing.
 
 ## Known issues
 
