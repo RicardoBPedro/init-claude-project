@@ -62,7 +62,9 @@ SKIP_PATTERNS='\.lock$|\.md$|CLAUDE\.md$|\.test\.|\.spec\.|node_modules|\.git/|\
 # YAML config files that need special scanning (ignore ${ENV_VAR} refs).
 YAML_PATTERNS='application\.ya?ml$|application-.*\.ya?ml$|config/.*\.ya?ml$'
 
-for file in $FILES; do
+# Iterate newline-separated list safely — handles filenames with spaces.
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
   [ ! -f "$file" ] && continue
   echo "$file" | grep -qE "$SKIP_PATTERNS" && continue
 
@@ -92,7 +94,7 @@ for file in $FILES; do
       fi
     done
   fi
-done
+done <<< "$FILES"
 
 if [ "$SECRETS_FOUND" -eq 1 ]; then
   echo ""

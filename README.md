@@ -18,6 +18,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-pr
 
 The bootstrap script clones the full toolkit to `~/.init-claude-project` (or updates an existing clone) and then runs the right entry point.
 
+Pin to a specific version via `ICP_REPO_REF` (branch or tag):
+
+```bash
+ICP_REPO_REF=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) frontend ./my-new-app
+```
+
 ### Local (from a clone)
 
 ```bash
@@ -40,15 +46,21 @@ Into the target project directory:
 - `.husky/commit-msg` — conventional-commits enforcer (format + length, language is documented convention)
 - `.husky/pre-push` — block direct push to protected branches + validate branch naming (`feat/`, `fix/`, etc.) + run check-secrets
 - `.husky/pre-commit` — check-todo-budget + lint-staged (frontend) or spotless check (backend)
+- `scripts/seed-memory.sh` — post-install helper that copies memory seeds into Claude Code's real memory dir (run once after first Claude session)
+- `scripts/hook-prepush-validate.sh` — wrapper used by `.claude/settings.json` PreToolUse hook to emit structured JSON decisions
+- `scripts/hook-sessionstart.sh` — wrapper used by `.claude/settings.json` SessionStart hook to surface branch-hygiene findings
+
+**Hooks use native git** (`core.hooksPath=.husky`) — no `husky` npm dependency. The installer configures this automatically if the target is already a git repo.
+
+Into `$target/.claude/memory-seeds/` (project-local, activated on demand):
+
+- 6 universal feedback memories + 1 reference memory + MEMORY.md index + README.md explaining activation
+- Activate with `bash scripts/seed-memory.sh` after your first Claude Code session in the project (Claude creates the real memory dir lazily)
 - `.claude/settings.json` — SessionStart hook (branch-hygiene) + PreToolUse Bash hook (block push + secrets)
 - `.gitattributes` — pin LF for `.sh`, `.bash`, `.husky/*` (avoids Windows CRLF breakage)
 - `.gitignore` — appended entries for `.claude/settings.local.json`, `.remember/`, `docs/scrum/`
 
-Into `~/.claude/projects/<hashed-project-path>/memory/`:
-
-- 6 universal feedback memories (branch hygiene, coverage ratchet, Opus for audits, docs-with-code, Claude config authorization, global vs project skills)
-- 1 reference memory (testing standard pointer)
-- `MEMORY.md` index
+<!-- legacy note removed: memory seeds are now project-local and activated via scripts/seed-memory.sh — see above. -->
 
 ## Preflight
 
@@ -70,7 +82,14 @@ Before installing, the script validates:
 - `~/.claude/CLAUDE.md`, `~/.claude/settings.json` — required
 - Enabled plugins (public, from `claude-plugins-official`): `superpowers`, `code-review`, `feature-dev`, `pr-review-toolkit`, `claude-md-management`, `commit-commands`, `remember`
 
-**Nothing else is installed or assumed.** The toolkit does NOT bundle or depend on any project-local skill / agent (bmad, fix-tests, legislacao-digital-br, pre-push-quality-gate, etc.). If you author your own, add them to `.claude/` in the target project and reference them in `CLAUDE.md` — that's out of this toolkit's scope.
+**Nothing else is installed or assumed.** The toolkit does NOT bundle or depend on any project-local skill / agent. If you author your own, add them to `.claude/` in the target project and reference them in `CLAUDE.md` — that's out of this toolkit's scope.
+
+## Safety behaviors
+
+- **Overwrite protection**: the installer aborts BEFORE prompts if any target file it would write already exists (`CLAUDE.md`, `.claude/settings.json`, installed scripts, hooks). Prevents silent loss of user config.
+- **Executable bits**: shell scripts are committed with `100755`, so `./init-frontend.sh` works directly on Linux / macOS after `git clone`.
+- **First-commit secret scan**: `check-secrets.sh` falls back to scanning all tracked files when there's no upstream and no parent commit — initial commits can't slip secrets past the hook.
+- **No `rm -rf` of user paths**: the remote `install.sh` only touches `~/.init-claude-project` (its own cache). Your target project is never destructively modified.
 
 Missing required tools trigger an interactive autoinstall prompt (with the exact command shown). Declining cancels the install.
 

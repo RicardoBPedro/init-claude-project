@@ -18,18 +18,15 @@ copy::check_conflicts() {
   local target="$1"
   local conflicts=()
 
-  # Files written directly
   [ -f "$target/CLAUDE.md" ]                 && conflicts+=("CLAUDE.md")
   [ -f "$target/docs/troubleshooting.md" ]   && conflicts+=("docs/troubleshooting.md")
   [ -f "$target/.claude/settings.json" ]     && conflicts+=(".claude/settings.json")
 
-  # Scripts we install by name
   local s
-  for s in branch-hygiene.sh branch-start.sh check-secrets.sh check-todo-budget.sh seed-memory.sh test-backend.sh; do
+  for s in branch-hygiene.sh branch-start.sh check-secrets.sh check-todo-budget.sh seed-memory.sh test-backend.sh hook-prepush-validate.sh hook-sessionstart.sh; do
     [ -f "$target/scripts/$s" ] && conflicts+=("scripts/$s")
   done
 
-  # Husky hooks
   local h
   for h in commit-msg pre-push pre-commit; do
     [ -f "$target/.husky/$h" ] && conflicts+=(".husky/$h")
@@ -52,8 +49,9 @@ copy::check_conflicts() {
 # copy::substitute <file> [strip_meta]
 # Replaces placeholders in-place using env vars:
 #   PROJECT_SUMMARY, MAIN_BRANCH, STAGING_BRANCH, PROJECT_ROOT.
-# If strip_meta=1, also strips template bookkeeping: HTML comments in markdown
-# and "_comment" fields in JSON (so the installed file is clean).
+# If strip_meta=1, ALSO strips template bookkeeping after substitution: HTML
+# comments in markdown and "_comment" fields in JSON. Order is critical —
+# substitution must run FIRST so JSON becomes parseable, then we strip.
 copy::substitute() {
   local file="$1"
   local strip_meta="${2:-0}"
@@ -71,10 +69,17 @@ subs = {
 with open(path, "r", encoding="utf-8") as f:
     content = f.read()
 
+# Step 1: substitute placeholders. For JSON this produces valid JSON; for
+# markdown it fills in project metadata.
+for k, v in subs.items():
+    content = content.replace(k, v)
+
+# Step 2 (optional): strip template bookkeeping. Runs AFTER substitution so
+# the JSON parser sees valid content.
 if strip:
-    # Strip HTML comments (<!-- ... -->) — template bookkeeping.
+    # Strip HTML comments (<!-- ... -->) — used in md_sources for template notes.
     content = re.sub(r"<!--.*?-->\s*", "", content, flags=re.DOTALL)
-    # For JSON files, drop top-level `_comment` keys.
+    # For JSON (or .tmpl files that produce JSON), drop top-level `_comment` keys.
     if path.endswith(".json") or path.endswith(".tmpl"):
         try:
             data = json.loads(content)
@@ -88,10 +93,7 @@ if strip:
                 data = clean(data)
                 content = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
         except json.JSONDecodeError:
-            pass  # Not valid JSON yet (has placeholders) — fall through.
-
-for k, v in subs.items():
-    content = content.replace(k, v)
+            pass  # Not valid JSON — leave content as-is.
 
 with open(path, "w", encoding="utf-8") as f:
     f.write(content)
@@ -126,14 +128,9 @@ copy::md_sources() {
 }
 
 # copy::memory_seeds <target_dir>
-# Writes universal memory seeds into $target/.claude/memory-seeds/. Claude
-# Code's actual memory dir is ~/.claude/projects/<hashed-path>/memory/, which
-# Claude creates lazily on first session. scripts/seed-memory.sh (installed
-# separately) handles the final copy with correct cross-platform hashing.
-#
-# This indirection avoids the risk of writing to a wrong hashed directory if
-# the OS-specific hashing assumption is off — seeds are safely placed in a
-# deterministic project-local path first.
+# Writes universal memory seeds into $target/.claude/memory-seeds/. Claude Code's
+# actual memory dir is ~/.claude/projects/<hashed-path>/memory/ — scripts/seed-memory.sh
+# (installed separately) does the final copy with correct cross-platform hashing.
 copy::memory_seeds() {
   local target="$1"
   local src="$__ICP_COPY_ROOT/md_sources/memory-seeds"
@@ -147,7 +144,6 @@ copy::memory_seeds() {
     cp "$f" "$dest/$name"
   done
 
-  # Drop a README explaining purpose + activation step.
   cat > "$dest/README.md" <<'EOF'
 # Memory seeds
 
@@ -176,6 +172,8 @@ EOF
 }
 
 # copy::scripts <type> <target_dir>
+# Copies scripts/common/* + scripts/<type>/* and substitutes placeholders in
+# the hook helpers that reference user-chosen branch names.
 copy::scripts() {
   local type="$1"
   local target="$2"
@@ -190,9 +188,15 @@ copy::scripts() {
     cp -R "$src/$type/." "$target/scripts/"
   fi
   find "$target/scripts" -type f -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
+
+  # hook-prepush-validate.sh has {{MAIN_BRANCH}}/{{STAGING_BRANCH}} in its PROTECTED list.
+  [ -f "$target/scripts/hook-prepush-validate.sh" ] && \
+    copy::substitute "$target/scripts/hook-prepush-validate.sh" 0
 }
 
 # copy::husky <type> <target_dir>
+# Copies husky/common/* + husky/<type>/*, substitutes placeholders in pre-push,
+# and auto-wires core.hooksPath if target is already a git repo.
 copy::husky() {
   local type="$1"
   local target="$2"
@@ -208,9 +212,14 @@ copy::husky() {
   fi
   find "$target/.husky" -type f ! -name '*.md' -exec chmod +x {} + 2>/dev/null || true
 
-  # If target is already a git repo, wire hooksPath immediately — otherwise
-  # the post-install instructions explain how to do it after git init.
-  if git -C "$target" rev-parse --git-dir >/dev/null 2>&1; then
+  # pre-push has {{MAIN_BRANCH}}/{{STAGING_BRANCH}} in its PROTECTED list.
+  [ -f "$target/.husky/pre-push" ] && \
+    copy::substitute "$target/.husky/pre-push" 0
+
+  # If target is the ROOT of a git repo (has .git as a dir or file), wire
+  # core.hooksPath. Checking `[ -e "$target/.git" ]` avoids falsely picking up
+  # a parent repo when $target is a subdirectory of an existing repo.
+  if [ -e "$target/.git" ]; then
     git -C "$target" config core.hooksPath .husky
     ui::ok "Configured core.hooksPath=.husky in the existing git repo"
   fi
@@ -242,20 +251,24 @@ copy::root_files() {
   [ -d "$src" ] || return 0
   ui::info "Installing root config files"
   local f name
-  for f in "$src"/* "$src"/.[!.]*; do
-    [ -e "$f" ] || continue
-    name=$(basename "$f")
-    if [ -e "$target/$name" ]; then
-      ui::dim "  skip $name (already exists)"
-      continue
-    fi
-    cp "$f" "$target/$name"
-    ui::dim "  + $name"
-  done
+  # shopt -s nullglob: unmatched patterns (e.g. no dotfiles) expand to nothing
+  # instead of the literal string, which would then fall through and be caught
+  # only by the [ -e ] guard. Enabled in a subshell to avoid leaking the option.
+  (
+    shopt -s nullglob
+    for f in "$src"/* "$src"/.[!.]*; do
+      name=$(basename "$f")
+      if [ -e "$target/$name" ]; then
+        ui::dim "  skip $name (already exists)"
+        continue
+      fi
+      cp "$f" "$target/$name"
+      ui::dim "  + $name"
+    done
+  )
 }
 
 # copy::gitignore <target_dir>
-# Appends Claude-related entries to .gitignore if missing.
 copy::gitignore() {
   local target="$1"
   local gi="$target/.gitignore"

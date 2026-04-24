@@ -80,6 +80,7 @@ Before declaring frontend work done:
 - Mobile (390px) + desktop layouts verified.
 - Screenshots of both themes × both viewports for any visible change.
 
-## Frontend hooks
-
-The `.claude/settings.json` installed by this template wires a `PostToolUse` hook on `Write|Edit` that runs `prettier --write` + `eslint --fix` + `tsc --noEmit` on touched `.ts`/`.tsx`/`.css`/`.json` files. Remove or scope the matcher if you don't want it.
+<!-- (Frontend-specific PostToolUse hooks are NOT installed by this template.
+     Add them to .claude/settings.json yourself if you want prettier + eslint
+     + tsc auto-runs after Write/Edit — the settings.json installed here
+     only wires SessionStart + pre-push validation.) -->

@@ -50,7 +50,11 @@ HEALTHY_MERGED=()
 ACTIVE=()
 
 # Local branches only — never list remote-tracking refs.
-mapfile -t BRANCHES < <(git for-each-ref --format='%(refname:short)' refs/heads/)
+# Portable alternative to `mapfile -t` (bash 4+; macOS ships bash 3.2).
+BRANCHES=()
+while IFS= read -r line; do
+  [ -n "$line" ] && BRANCHES+=("$line")
+done < <(git for-each-ref --format='%(refname:short)' refs/heads/)
 
 # Verify the main branch ref exists locally; fall back to master if not.
 if ! git show-ref --verify --quiet "refs/heads/$MAIN_BRANCH"; then

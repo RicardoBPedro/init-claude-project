@@ -12,6 +12,7 @@
 set -euo pipefail
 
 REPO_URL="${ICP_REPO_URL:-https://github.com/RicardoBPedro/init-claude-project.git}"
+REPO_REF="${ICP_REPO_REF:-main}"
 ICP_HOME="${ICP_HOME:-$HOME/.init-claude-project}"
 
 type="${1:-}"
@@ -30,6 +31,7 @@ Example:
 
 Environment:
   ICP_REPO_URL   override the git URL (default: github.com/RicardoBPedro/init-claude-project)
+  ICP_REPO_REF   pin to a branch or tag (default: main — use 'vX.Y.Z' for release pinning)
   ICP_HOME       clone location for the toolkit (default: ~/.init-claude-project)
 EOF
 }
@@ -64,12 +66,12 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 
 if [ -d "$ICP_HOME/.git" ]; then
-  echo "[i] Updating existing checkout"
-  git -C "$ICP_HOME" fetch --quiet origin
-  git -C "$ICP_HOME" reset --hard --quiet origin/main
+  echo "[i] Updating existing checkout at $ICP_HOME (ref: $REPO_REF)"
+  git -C "$ICP_HOME" fetch --quiet origin "$REPO_REF"
+  git -C "$ICP_HOME" reset --hard --quiet FETCH_HEAD
 else
-  echo "[i] Cloning $REPO_URL"
-  git clone --depth 1 --quiet "$REPO_URL" "$ICP_HOME"
+  echo "[i] Cloning $REPO_URL (ref: $REPO_REF)"
+  git clone --depth 1 --branch "$REPO_REF" --quiet "$REPO_URL" "$ICP_HOME"
 fi
 
 exec "$ICP_HOME/init-${type}.sh" "$target"

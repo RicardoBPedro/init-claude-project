@@ -44,8 +44,11 @@ preflight::run() {
   # --- Phase 2: tools from manifest (type-scoped) ---
   ui::section "Checking tools for type=$type"
 
-  local tools_to_check
-  mapfile -t tools_to_check < <(
+  local tools_to_check=()
+  # Portable alternative to `mapfile -t` (which is bash 4+; macOS ships bash 3.2).
+  while IFS= read -r line; do
+    [ -n "$line" ] && tools_to_check+=("$line")
+  done < <(
     jq -r --arg type "$type" \
       '.tools | to_entries[]
        | select(.value.required == true or ((.value.required_for // []) | any(. == $type)))

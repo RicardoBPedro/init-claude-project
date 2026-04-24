@@ -82,6 +82,7 @@ pitest {
 - Killed gradle run → zombie Ryuk + Postgres containers stall the next `:test`.
 - Scheduler tests fail intermittently → wall clock leaked in; inject `Clock`.
 
-## Backend hooks
-
-The `.claude/settings.json` installed by this template wires a `PostToolUse` hook after `git commit` that runs the scoped test suite for touched modules. Tune the matcher if your repo has a different layout.
+<!-- (Backend-specific PostToolUse hooks are NOT installed by this template.
+     Add them to .claude/settings.json yourself if you want auto test runs
+     after git commit — the settings.json installed here only wires
+     SessionStart + pre-push validation.) -->

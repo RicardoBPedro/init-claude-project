@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
 branch=$(git rev-parse --abbrev-ref HEAD)
 
-# Protected branches — no direct push (integration happens via pipeline).
-case "$branch" in
-  main|master|homolog|staging|develop)
+# Protected branches: standard convention + user-chosen main/staging (substituted
+# at install time). Empty placeholders are safely skipped by the word-split loop.
+PROTECTED='main master homolog staging develop {{MAIN_BRANCH}} {{STAGING_BRANCH}}'
+
+for p in $PROTECTED; do
+  [ -z "$p" ] && continue
+  if [ "$branch" = "$p" ]; then
     echo ""
     echo "ERROR: Cannot push directly to '$branch'."
     echo "Protected branches are updated via PR or pipeline — never by direct push."
     echo ""
     exit 1
-    ;;
+  fi
+done
+
+# Validate naming convention.
+case "$branch" in
   feat/*|fix/*|refactor/*|chore/*|test/*|docs/*|perf/*|style/*)
-    : # Conforms to the naming convention.
+    : # Conforms.
     ;;
   *)
     echo ""
