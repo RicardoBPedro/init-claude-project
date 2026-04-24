@@ -115,12 +115,15 @@ PY
 }
 
 # copy::md_sources <type:frontend|backend> <target_dir>
-# Reads WITH_BRAZIL env var (0/1) to decide whether to append the Brazil addendum.
+# Reads WITH_BRAZIL + WITH_MUTATION env vars (0/1) to decide whether to append
+# opt-in addendums. Opt-in keeps the default CLAUDE.md as small as possible —
+# every token saved multiplies across every session every user has.
 copy::md_sources() {
   local type="$1"
   local target="$2"
   local src="$__ICP_COPY_ROOT/md_sources"
   local with_brazil="${WITH_BRAZIL:-0}"
+  local with_mutation="${WITH_MUTATION:-0}"
 
   ui::info "Writing CLAUDE.md"
   mkdir -p "$target"
@@ -131,6 +134,10 @@ copy::md_sources() {
     if [ "$with_brazil" = "1" ] && [ -f "$src/CLAUDE/brazil.md" ]; then
       printf '\n\n---\n\n'
       cat "$src/CLAUDE/brazil.md"
+    fi
+    if [ "$with_mutation" = "1" ] && [ -f "$src/CLAUDE/mutation-$type.md" ]; then
+      printf '\n\n---\n\n'
+      cat "$src/CLAUDE/mutation-$type.md"
     fi
   } > "$target/CLAUDE.md"
   copy::substitute "$target/CLAUDE.md" 1

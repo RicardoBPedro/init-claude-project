@@ -36,7 +36,7 @@ cd init-claude-project
 
 Into the target project directory:
 
-- `CLAUDE.md` — universal working principles + gitflow + stack addendum (frontend or backend) + **optional Brazil addendum** (LGPD / Marco Civil / CDC context) if the project serves Brazilian users
+- `CLAUDE.md` — universal working principles + gitflow + stack addendum (frontend or backend) + **optional addendums** (Brazil legal context, mutation testing guidance — prompted at install; skip them if unused to keep the file lean and save tokens at scale)
 - `docs/troubleshooting.md` — recurring issues catalog (Windows Docker context, zombie Testcontainers, flaky schedulers, etc.)
 - `scripts/branch-hygiene.sh` — detect stale / forgotten / non-main-forked local branches (strictly local, no forge API)
 - `scripts/branch-start.sh` — safe branch creator (refuses to fork from stale main)
@@ -111,7 +111,9 @@ init-claude-project/
 │   │   ├── base.md                    universal skeleton
 │   │   ├── frontend.md                frontend addendum
 │   │   ├── backend.md                 backend addendum
-│   │   └── brazil.md                  Brazil legal addendum (opt-in at install)
+│   │   ├── brazil.md                  Brazil legal addendum (opt-in at install)
+│   │   ├── mutation-frontend.md       mutation testing + Stryker (opt-in)
+│   │   └── mutation-backend.md        mutation testing + PITest (opt-in)
 │   ├── docs/
 │   │   └── troubleshooting.md         recurring-issue catalog
 │   └── memory-seeds/

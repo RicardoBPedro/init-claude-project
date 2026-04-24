@@ -57,7 +57,12 @@ if ui::confirm "Include Brazil legal context addendum (LGPD, Marco Civil, CDC)?"
   WITH_BRAZIL=1
 fi
 
-export PROJECT_SUMMARY MAIN_BRANCH STAGING_BRANCH WITH_BRAZIL
+WITH_MUTATION=0
+if ui::confirm "Include mutation testing guidance (PITest)? Only useful if you'll actually run it on critical paths — otherwise skip to keep CLAUDE.md lean"; then
+  WITH_MUTATION=1
+fi
+
+export PROJECT_SUMMARY MAIN_BRANCH STAGING_BRANCH WITH_BRAZIL WITH_MUTATION
 
 # --- Confirm plan ---
 ui::section "Installation plan"
@@ -67,6 +72,7 @@ cat <<EOF
   Main branch:            $MAIN_BRANCH
   Staging branch:         ${STAGING_BRANCH:-<none>}
   Brazil addendum:        $([ "$WITH_BRAZIL" = "1" ] && echo yes || echo no)
+  Mutation addendum:      $([ "$WITH_MUTATION" = "1" ] && echo yes || echo no)
   Will create:
     - $target/CLAUDE.md                      (base + backend addendum)
     - $target/docs/troubleshooting.md
