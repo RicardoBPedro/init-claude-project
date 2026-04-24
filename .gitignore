@@ -1,0 +1,12 @@
+# Local test output
+/test-output/
+/tmp/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

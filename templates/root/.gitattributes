@@ -1,0 +1,9 @@
+# Pin LF for shell scripts — CRLF breaks Git Bash shebang parsing on Windows.
+*.sh    text eol=lf
+*.bash  text eol=lf
+
+# Git hooks must be LF too (Husky runs them via bash).
+.husky/* text eol=lf
+
+# Markdown: default LF
+*.md    text eol=lf

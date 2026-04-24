@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Frontend pre-commit: run lint-staged (prettier + eslint on staged files).
+# Requires `lint-staged` configured in package.json.
+
+if [ -f package.json ] && grep -q '"lint-staged"' package.json; then
+  npx --no-install lint-staged
+else
+  echo "pre-commit: no lint-staged config — skipping."
+fi

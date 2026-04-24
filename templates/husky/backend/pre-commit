@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Backend pre-commit: light sanity check.
+# Full test suite is too slow for a pre-commit hook — use CI or a post-commit
+# hook for that. Here we only run fast checks (formatting / spotless if present).
+
+if [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+  # Run spotless check if available (10-20s typically).
+  if grep -qE '(spotless|ktlint|googleJavaFormat)' build.gradle* 2>/dev/null; then
+    ./gradlew spotlessCheck --quiet 2>/dev/null || {
+      echo ""
+      echo "ERROR: spotless check failed. Run './gradlew spotlessApply' and re-commit."
+      exit 1
+    }
+  fi
+fi
+
+exit 0

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+branch=$(git rev-parse --abbrev-ref HEAD)
+
+# Block direct push to protected branches.
+case "$branch" in
+  main|master|homolog|staging|develop)
+    echo ""
+    echo "ERROR: Cannot push directly to '$branch'."
+    echo "Protected branches are updated via PR or pipeline — never by direct push."
+    echo ""
+    exit 1
+    ;;
+esac
+
+# Secret scan
+if [ -f scripts/check-secrets.sh ]; then
+  bash scripts/check-secrets.sh || exit 1
+fi

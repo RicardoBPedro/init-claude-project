@@ -1,0 +1,5 @@
+# Pin LF for shell scripts in this repo too — same rationale as the template.
+*.sh    text eol=lf
+*.bash  text eol=lf
+.husky/* text eol=lf
+*.md    text eol=lf

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+commit_msg=$(cat "$1" | tr -d '\r')
+
+# Allow merge commits
+if echo "$commit_msg" | grep -qE "^Merge "; then
+  exit 0
+fi
+
+pattern="^(feat|fix|refactor|test|docs|chore|style|perf|ci|build|revert)(\(.+\))?: .{1,72}$"
+if ! echo "$commit_msg" | head -1 | grep -qE "$pattern"; then
+  echo ""
+  echo "ERROR: Commit message must follow conventional commits format."
+  echo ""
+  echo "  Format: <type>(<scope>): <description>"
+  echo ""
+  echo "  Types: feat, fix, refactor, test, docs, chore, style, perf, ci, build, revert"
+  echo "  Example: feat(auth): add refresh token rotation"
+  echo ""
+  echo "  Your message: $commit_msg"
+  echo ""
+  exit 1
+fi

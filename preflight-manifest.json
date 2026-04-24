@@ -1,0 +1,135 @@
+{
+  "_comment": "Manifest consumed by lib/preflight.sh. Edit here, not in the script, to add/remove tools. required=true means required regardless of project type; required_for=[frontend|backend] means required only for that type. autoinstall keys follow `${os_family}_${package_manager}` (linux_apt, darwin_brew, windows_winget, windows_scoop, etc.). `any_npm` is a universal fallback for things installable via npm.",
+  "tools": {
+    "git": {
+      "required": true,
+      "check": "git --version",
+      "autoinstall": null,
+      "manual_guide_url": "https://git-scm.com/downloads",
+      "manual_guide_note": "git is a hard prerequisite. Install before running this script."
+    },
+    "bash": {
+      "required": true,
+      "check": "bash --version",
+      "autoinstall": null,
+      "manual_guide_url": "https://git-scm.com/downloads",
+      "manual_guide_note": "On Windows: install Git for Windows (bundles Git Bash). On Linux/Mac: already present."
+    },
+    "jq": {
+      "required": true,
+      "check": "jq --version",
+      "autoinstall": {
+        "linux_apt":    "sudo apt-get update && sudo apt-get install -y jq",
+        "linux_dnf":    "sudo dnf install -y jq",
+        "linux_pacman": "sudo pacman -S --noconfirm jq",
+        "darwin_brew":  "brew install jq",
+        "windows_winget": "winget install -e --id jqlang.jq",
+        "windows_scoop":  "scoop install jq"
+      },
+      "manual_guide_url": "https://stedolan.github.io/jq/download/",
+      "manual_guide_note": "jq parses this manifest and reads Claude settings. Hard dep."
+    },
+    "python3": {
+      "required": true,
+      "check": "python3 --version || python --version",
+      "autoinstall": {
+        "linux_apt":    "sudo apt-get install -y python3",
+        "linux_dnf":    "sudo dnf install -y python3",
+        "linux_pacman": "sudo pacman -S --noconfirm python",
+        "darwin_brew":  "brew install python3",
+        "windows_winget": "winget install -e --id Python.Python.3.12",
+        "windows_scoop":  "scoop install python"
+      },
+      "manual_guide_url": "https://www.python.org/downloads/",
+      "manual_guide_note": "Used by .claude/settings.json hooks to JSON-encode stdout for Claude Code."
+    },
+    "node": {
+      "required_for": ["frontend"],
+      "check": "node --version",
+      "autoinstall": {
+        "linux_apt":    "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs",
+        "darwin_brew":  "brew install node",
+        "windows_winget": "winget install -e --id OpenJS.NodeJS.LTS",
+        "windows_scoop":  "scoop install nodejs-lts"
+      },
+      "manual_guide_url": "https://nodejs.org/"
+    },
+    "npm": {
+      "required_for": ["frontend"],
+      "check": "npm --version",
+      "autoinstall": null,
+      "manual_guide_note": "npm ships with node — install node and npm will be present."
+    },
+    "java": {
+      "required_for": ["backend"],
+      "check": "java -version",
+      "autoinstall": null,
+      "manual_guide_url": "https://adoptium.net/",
+      "manual_guide_note": "Install Temurin JDK 21+ (or your project's target version)."
+    },
+    "docker": {
+      "required_for": ["backend"],
+      "optional": true,
+      "check": "docker --version",
+      "autoinstall": null,
+      "manual_guide_url": "https://docs.docker.com/get-docker/",
+      "manual_guide_note": "Needed for Testcontainers and local compose. Install Docker Desktop on Windows/Mac, docker engine on Linux. On Windows, switch context to desktop-linux after install (see docs/troubleshooting.md)."
+    },
+    "claude": {
+      "required": true,
+      "check": "claude --version",
+      "autoinstall": {
+        "any_npm": "npm install -g @anthropic-ai/claude-code"
+      },
+      "manual_guide_url": "https://docs.claude.com/en/docs/claude-code/installation",
+      "manual_guide_note": "Claude Code CLI. Required to use agents, skills, hooks."
+    }
+  },
+  "claude_globals": {
+    "_comment": "Files and resources that MUST exist in ~/.claude/ for this project's CLAUDE.md to work as intended. The installer does NOT create these — they're user-level and cross-project.",
+    "files": [
+      {
+        "path": "~/.claude/CLAUDE.md",
+        "required": true,
+        "note": "Global user-level CLAUDE.md with universal preferences (testing standard, etc.)."
+      },
+      {
+        "path": "~/.claude/settings.json",
+        "required": true,
+        "note": "Global permissions, enabled plugins, default model."
+      },
+      {
+        "path": "~/.claude/docs/testing-standard.md",
+        "required": false,
+        "note": "Referenced by project CLAUDE.md. If missing, the project's testing-standard link will 404."
+      }
+    ],
+    "agents": {
+      "_comment": "Checked as files under ~/.claude/agents/<name>.md. Missing agents don't fail preflight — they just disable related workflows.",
+      "recommended": [
+        "audit-orchestrator",
+        "audit-inventory",
+        "audit-security",
+        "audit-quality",
+        "audit-architecture",
+        "audit-performance",
+        "audit-qa",
+        "audit-config",
+        "audit-process",
+        "audit-worker"
+      ]
+    },
+    "plugins": {
+      "_comment": "Recommended plugins enabled via ~/.claude/settings.json > enabledPlugins. Missing plugins don't fail preflight — they just disable related commands.",
+      "recommended": [
+        "superpowers",
+        "code-review",
+        "feature-dev",
+        "pr-review-toolkit",
+        "claude-md-management",
+        "commit-commands",
+        "remember"
+      ]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+- [Global vs project-local skills/agents](feedback_global_vs_project_skills.md) — domain-generic artifacts → ~/.claude/; project-specific refs → <repo>/.claude/
+- [Never leave orphan branches](feedback_never_leave_orphan_branches.md) — Run bash scripts/branch-hygiene.sh at session start+end
+- [Coverage threshold is a ratchet](feedback_test_coverage_ratchet.md) — Never lower thresholds; only raise
+- [Use Opus for heavy analysis](feedback_use_opus_for_audits.md) — Opus for audits, security, architecture, complex refactoring
+- [Docs evolve with code](feedback_docs_live_with_code.md) — Every feature/fix updates relevant docs in the same commit
+- [Authorized to edit Claude config on request](feedback_claude_config_authorization.md) — Proceed directly on ~/.claude/** and .claude/** edits
+- [Global testing standard](reference_testing_standard.md) — Six principles + zero-tolerance rules; read before writing any test
