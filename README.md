@@ -10,37 +10,55 @@ The toolkit is bash-based — on Windows use **Git Bash** (ships with [Git for W
 
 The target directory is optional — defaults to the current directory (`.`). From an IDE-integrated terminal that already opens at the project root, just run the install with no arguments.
 
-**Linux / macOS / Git Bash / WSL:**
+### Linux / macOS / Git Bash / WSL
+
+Most common — run from the project root:
 
 ```bash
-# Remote, current directory (most common — IDE terminal at project root)
 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh)
-
-# Remote, explicit target
-bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) ./my-project
-
-# Local (from a clone)
-./install.sh                    # current directory
-./install.sh ./my-project       # explicit target
-
-# Pin a version
-ICP_REPO_REF=v1.0.0 bash <(curl -fsSL .../install.sh)
 ```
 
-**Windows PowerShell** (requires bash on PATH — Git for Windows or WSL):
+Install into a specific directory:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) ./my-project
+```
+
+From a local clone of this repo:
+
+```bash
+./install.sh
+```
+
+Pin to a release tag:
+
+```bash
+ICP_REPO_REF=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh)
+```
+
+### Windows PowerShell
+
+Requires bash on PATH — install [Git for Windows](https://git-scm.com/downloads) or use WSL.
+
+Most common — run from the project root:
 
 ```powershell
-# Current directory
 curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash
+```
 
-# Explicit target
+Install into a specific directory:
+
+```powershell
 curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash -s -- ./my-project
+```
 
-# Pin a version
+Pin to a release tag:
+
+```powershell
 $env:ICP_REPO_REF="v1.0.0"; curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash
 ```
 
-> PowerShell aliases `curl` to `Invoke-WebRequest` (different syntax), so use `curl.exe` to hit the real binary. Process substitution `<(...)` doesn't exist in PowerShell — pipe through `bash` (or `bash -s --` to pass positional args) instead.
+> PowerShell aliases `curl` to `Invoke-WebRequest` (different syntax), so the `.exe` suffix is required to hit the real binary. Process substitution `<(...)` doesn't exist in PowerShell — pipe through `bash` (or `bash -s --` to pass positional args) instead.
 
 `install.sh` is the single entry point. It auto-detects the stack and whether to run a fresh install or refresh an existing one — re-running the same command months later lands in upgrade mode automatically. Run with `--help` for overrides.
 
