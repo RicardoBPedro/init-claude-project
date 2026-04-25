@@ -6,6 +6,10 @@ Opinionated bootstrap for projects that use [Claude Code](https://claude.com/cla
 
 ## Quick start
 
+The toolkit is bash-based — on Windows use **Git Bash** (ships with [Git for Windows](https://git-scm.com/downloads)) or **WSL**.
+
+**Linux / macOS / Git Bash / WSL:**
+
 ```bash
 # Remote (no clone needed)
 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) ./my-project
@@ -16,6 +20,18 @@ bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-pr
 # Pin a version
 ICP_REPO_REF=v1.0.0 bash <(curl -fsSL .../install.sh) ./my-project
 ```
+
+**Windows PowerShell** (requires bash on PATH — Git for Windows or WSL):
+
+```powershell
+# Remote
+curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash -s -- ./my-project
+
+# Pin a version
+$env:ICP_REPO_REF="v1.0.0"; curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash -s -- ./my-project
+```
+
+> PowerShell aliases `curl` to `Invoke-WebRequest` (different syntax), so use `curl.exe` to hit the real binary. Process substitution `<(...)` doesn't exist in PowerShell — pipe through `bash -s --` instead.
 
 `install.sh` is the single entry point. It auto-detects the stack and whether to run a fresh install or refresh an existing one — re-running the same command months later lands in upgrade mode automatically. Run with `--help` for overrides.
 
