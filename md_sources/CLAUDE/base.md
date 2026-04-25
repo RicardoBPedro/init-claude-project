@@ -75,11 +75,11 @@ git checkout -b feature/<card-number>/<short-description>
 ### Branch hygiene (NON-NEGOTIABLE)
 
 Stale branches are the main local failure mode. Run `scripts/branch-hygiene.sh` at session start and before handoff (strictly local, works offline). Reports:
-- Age > `STALE_DAYS` (default 7) — review, rebase, or delete.
+- Age > `STALE_DAYS` (default 14 — covers a 2-week sprint) — review, rebase, or delete.
 - Merge-base with `{{MAIN_BRANCH}}` older than `STALE_BASE_DAYS` (default 30) — likely forked from outdated state.
 - Forked from non-`{{MAIN_BRANCH}}` (e.g. `develop`) — violates "branch from main".
 
-Override: `STALE_DAYS=14 bash scripts/branch-hygiene.sh`.
+Override: `STALE_DAYS=21 bash scripts/branch-hygiene.sh`.
 
 **Resolving stale branches:** never delete silently. Show scope (commits, diff, merge-base age) and let the user choose: rebase, cherry-pick, push, or abandon.
 

@@ -15,7 +15,7 @@
 #
 # Env overrides:
 #   MAIN_BRANCH=main       override the integration branch name
-#   STALE_DAYS=7           age threshold for flagging unmerged branches
+#   STALE_DAYS=14          age threshold for flagging unmerged branches (default covers a 2-week sprint)
 #   STALE_BASE_DAYS=30     warn if merge-base with main is older than this
 #
 # Usage:
@@ -38,7 +38,7 @@ case "$MODE" in
 esac
 
 MAIN_BRANCH="${MAIN_BRANCH:-main}"
-STALE_DAYS="${STALE_DAYS:-7}"
+STALE_DAYS="${STALE_DAYS:-14}"
 STALE_BASE_DAYS="${STALE_BASE_DAYS:-30}"
 
 PROTECTED_RE='^(master|main|homolog|staging|develop)$'
