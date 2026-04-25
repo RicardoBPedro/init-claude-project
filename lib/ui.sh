@@ -36,9 +36,15 @@ case "${ICP_UNICODE:-auto}" in
 esac
 
 if [ "$__ICP_UTF8" = "1" ]; then
-  S_INFO="ℹ"
+  # Glyphs that default to emoji presentation in many terminals (ℹ U+2139,
+  # ⚠ U+26A0) get a trailing U+FE0E variation selector to force text width.
+  # Without it, those render at emoji width (2 cols) and eat the trailing
+  # space, producing "ℹTarget" instead of "ℹ Target". Modern terminals
+  # (Windows Terminal, iTerm2, GNOME Terminal) honor VS-15 and drop it
+  # silently when unsupported (it's a default-ignorable code point).
+  S_INFO="ℹ︎"
   S_OK="✓"
-  S_WARN="⚠"
+  S_WARN="⚠︎"
   S_ERROR="✗"
   S_BULLET="•"
   S_PROMPT="❯"
@@ -53,13 +59,16 @@ else
   S_SECTION=">"
 fi
 
-ui::info()    { printf '  %s%s%s %s\n' "$C_CYAN"   "$S_INFO"  "$C_RESET" "$*"; }
-ui::ok()      { printf '  %s%s%s %s\n' "$C_GREEN"  "$S_OK"    "$C_RESET" "$*"; }
-ui::warn()    { printf '  %s%s%s %s\n' "$C_YELLOW" "$S_WARN"  "$C_RESET" "$*" >&2; }
-ui::error()   { printf '  %s%s%s %s\n' "$C_RED"    "$S_ERROR" "$C_RESET" "$*" >&2; }
-ui::dim()     { printf '%s%s%s\n'      "$C_DIM"    "$*"       "$C_RESET"; }
-ui::bullet()  { printf '    %s%s%s %s\n' "$C_DIM"  "$S_BULLET" "$C_RESET" "$*"; }
-ui::section() { printf '\n%s%s %s%s\n' "$C_CYAN$C_BOLD" "$S_SECTION" "$*" "$C_RESET"; }
+# Two spaces between glyph and text — gives a comfortable, consistent gap
+# even on terminals that ignore VS-15 and still render ℹ/⚠ at emoji width
+# (one of the two spaces gets "absorbed" by the wider glyph in that case).
+ui::info()    { printf '  %s%s%s  %s\n' "$C_CYAN"   "$S_INFO"  "$C_RESET" "$*"; }
+ui::ok()      { printf '  %s%s%s  %s\n' "$C_GREEN"  "$S_OK"    "$C_RESET" "$*"; }
+ui::warn()    { printf '  %s%s%s  %s\n' "$C_YELLOW" "$S_WARN"  "$C_RESET" "$*" >&2; }
+ui::error()   { printf '  %s%s%s  %s\n' "$C_RED"    "$S_ERROR" "$C_RESET" "$*" >&2; }
+ui::dim()     { printf '%s%s%s\n'       "$C_DIM"    "$*"       "$C_RESET"; }
+ui::bullet()  { printf '    %s%s%s %s\n' "$C_DIM"   "$S_BULLET" "$C_RESET" "$*"; }
+ui::section() { printf '\n%s%s %s%s\n'  "$C_CYAN$C_BOLD" "$S_SECTION" "$*" "$C_RESET"; }
 
 # ui::confirm <prompt> [default_yes]
 # Returns 0 if yes, 1 if no. Default NO unless default_yes=1.
