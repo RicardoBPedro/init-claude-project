@@ -114,8 +114,13 @@ PRs created manually. Body: **Summary** (link ticket) → **Changes by layer** �
 4. UI changes: themes + viewports verified
 5. API changes: consumers updated
 6. New features: at least one happy-path test
+7. Non-trivial design decisions logged (see Decision log below)
 
 Stack-specific DoD extensions live in the stack addendum.
+
+## Decision log
+
+Trade-off decisions go to `docs/decisions/<YYYY-MM-DD>-<slug>.md` BEFORE declaring the task done — architecture pivots, library swaps, public-contract changes, anything where reasonable engineers would disagree. Skip for trivial bugs and mechanical refactors. Future sessions read these to recover the *why* without re-deriving it from chat history (which doesn't survive).
 
 ## Testing discipline
 

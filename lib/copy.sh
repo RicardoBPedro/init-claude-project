@@ -190,6 +190,12 @@ copy::md_sources() {
     cp "$src/docs/troubleshooting.md" "$target/docs/troubleshooting.md"
     copy::substitute "$target/docs/troubleshooting.md" 1
   fi
+
+  # ADR scaffold — see CLAUDE.md > Decision log. Empty .gitkeep so the dir
+  # exists from day 1 and Claude has a known target for design-decision notes.
+  # Idempotent on upgrade (existing .gitkeep is left alone).
+  mkdir -p "$target/docs/decisions"
+  [ -f "$target/docs/decisions/.gitkeep" ] || : > "$target/docs/decisions/.gitkeep"
 }
 
 # copy::memory_seeds <target_dir>

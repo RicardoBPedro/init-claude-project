@@ -4,4 +4,5 @@
 - [Use Opus for heavy analysis](feedback_use_opus_for_audits.md) — Opus for audits, security, architecture, complex refactoring
 - [Docs evolve with code](feedback_docs_live_with_code.md) — Every feature/fix updates relevant docs in the same commit
 - [Authorized to edit Claude config on request](feedback_claude_config_authorization.md) — Proceed directly on ~/.claude/** and .claude/** edits
+- [Persist design decisions](feedback_persist_design_decisions.md) — ADR notes in docs/decisions/<date>-<slug>.md for trade-off choices, before declaring done
 - [Global testing standard](reference_testing_standard.md) — Six principles + zero-tolerance rules; read before writing any test
