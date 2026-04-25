@@ -25,6 +25,12 @@ out=$( cd "$ROOT" && bash scripts/branch-hygiene.sh 2>&1 )
 code=$?
 set -e 2>/dev/null || true
 
+# Strip the human-coaching footer (the "Options per branch: (a) rebase / (b)
+# push+PR / (c) delete" block). Useful when a human reads the script output;
+# noise for Claude, which already knows how to rebase or delete a branch.
+# Saves ~5 lines / ~50 tokens per dispatch.
+out=$(printf '%s' "$out" | sed '/^Options per branch:$/,/^$/d')
+
 if [ "$code" -ne 0 ]; then
   ICP_OUT="$out" "$PY" -c "$(cat <<'PY'
 import json, os
