@@ -114,13 +114,13 @@ PRs created manually. Body: **Summary** (link ticket) → **Changes by layer** �
 4. UI changes: themes + viewports verified
 5. API changes: consumers updated
 6. New features: at least one happy-path test
-7. Non-trivial design decisions logged (see Decision log below)
+7. Trade-off decisions: ADR written before claiming done
 
 Stack-specific DoD extensions live in the stack addendum.
 
 ## Decision log
 
-Trade-off decisions go to `docs/decisions/<YYYY-MM-DD>-<slug>.md` BEFORE declaring the task done — architecture pivots, library swaps, public-contract changes, anything where reasonable engineers would disagree. Skip for trivial bugs and mechanical refactors. Future sessions read these to recover the *why* without re-deriving it from chat history (which doesn't survive).
+Trade-off decisions (architecture pivots, library swaps, contract changes) → ADR at `docs/decisions/<YYYY-MM-DD>-<slug>.md` before declaring done. Skip trivial bugs and mechanical refactors.
 
 ## Testing discipline
 
@@ -157,6 +157,4 @@ Codebase map in `docs/architecture.md`. Session state in `.remember/now.md`. CLA
 
 ## Maintenance
 
-This file's goal is to **shrink over time**. Before adding a line, ask: *would a competent dev — or a current Claude model — already do this without being told?* If yes, don't add it.
-
-Audit quarterly. Anything Claude now handles natively is dead weight — every line is loaded into context every session, and the cost compounds across the team.
+Goal: this file shrinks over time. Before adding, ask if Claude would already do it unprompted — if yes, don't. Audit quarterly; every line costs context every session × every dev.
