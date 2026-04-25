@@ -46,7 +46,7 @@ ICP_REPO_REF=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoB
 Requires bash on PATH — install [Git for Windows](https://git-scm.com/downloads) or use WSL.
 
 ```powershell
-curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash
+bash -c "curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash"
 ```
 
 <details>
@@ -57,18 +57,18 @@ curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-proje
 Install into a specific directory:
 
 ```powershell
-curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash -s -- ./my-project
+bash -c "curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash -s -- ./my-project"
 ```
 
 Pin to a release tag:
 
 ```powershell
-$env:ICP_REPO_REF="v1.0.0"; curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash
+$env:ICP_REPO_REF="v1.0.0"; bash -c "curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash"
 ```
 
 </details>
 
-> PowerShell aliases `curl` to `Invoke-WebRequest` (different syntax), so the `.exe` suffix is required to hit the real binary. Process substitution `<(...)` doesn't exist in PowerShell — pipe through `bash` (or `bash -s --` to pass positional args) instead.
+> Why the `bash -c "..."` wrapper? PowerShell's pipe operator silently converts line endings to CRLF when piping between native commands, which makes bash choke (`$'\r': command not found`). Wrapping the curl-pipe-bash in `bash -c "..."` keeps the pipe inside bash, so the script reaches the inner shell with clean LF endings. The same trick sidesteps PowerShell's lack of `<(...)` process substitution.
 
 `install.sh` is the single entry point. It auto-detects the stack and whether to run a fresh install or refresh an existing one — re-running the same command months later lands in upgrade mode automatically. Run with `--help` for overrides.
 
