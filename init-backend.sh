@@ -13,12 +13,9 @@ source "$__ICP_ENTRY_DIR/lib/preflight.sh"
 # shellcheck source=lib/copy.sh
 source "$__ICP_ENTRY_DIR/lib/copy.sh"
 
-target="${1:-}"
-if [ -z "$target" ]; then
-  ui::error "Missing target directory."
-  echo "Usage: $0 <target-dir>" >&2
-  exit 1
-fi
+# Target defaults to "." (current dir) — handy when running from the project
+# root in an IDE-integrated terminal.
+target="${1:-.}"
 
 ui::section "init-claude-project — backend"
 ui::info "Target: $target"

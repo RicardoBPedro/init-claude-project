@@ -18,12 +18,9 @@ source "$__ICP_ENTRY_DIR/lib/copy.sh"
 # All copy::* functions consult this. Set BEFORE any of them run.
 export ICP_MODE=upgrade
 
-target="${1:-}"
-if [ -z "$target" ]; then
-  ui::error "Missing target directory."
-  echo "Usage: $0 <target-dir>" >&2
-  exit 1
-fi
+# Target defaults to "." (current dir) — handy when running from the project
+# root in an IDE-integrated terminal.
+target="${1:-.}"
 [ -d "$target" ] || { ui::error "Target does not exist: $target"; exit 1; }
 
 ui::section "init-claude-project — upgrade"

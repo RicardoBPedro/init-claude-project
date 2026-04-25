@@ -8,14 +8,16 @@
 #   - frontend vs backend               → detected from build files (asks if ambiguous)
 #
 # Usage (the only one most users need):
-#   install.sh <target-directory>
+#   install.sh                       use the current directory (.) — handy when
+#                                    running from the project root in an IDE terminal
+#   install.sh <target-directory>    explicit target
 #
 # Overrides (for CI, scripted setups, edge cases):
-#   install.sh <target> --type=frontend|backend|base   force project type
-#   install.sh <target> --mode=install|upgrade         force mode
-#   install.sh <target> --yes                          accept all defaults non-interactively
-#   install.sh <target> --force-stack                  bypass stack-compatibility check
-#                                                      (templates may not fit — adapt manually)
+#   install.sh [<target>] --type=frontend|backend|base   force project type
+#   install.sh [<target>] --mode=install|upgrade         force mode
+#   install.sh [<target>] --yes                          accept all defaults non-interactively
+#   install.sh [<target>] --force-stack                  bypass stack-compatibility check
+#                                                        (templates may not fit — adapt manually)
 #
 # Type semantics (decides which scripts/husky subdirs ship — not the addendum):
 #   frontend   - React/Vue/Angular/Svelte/Astro/Solid/Preact (lint-staged pre-commit, npm scripts)
@@ -67,7 +69,10 @@ for arg in "$@"; do
 done
 
 # Legacy positional forms: `install.sh <type> <target>` or `install.sh upgrade <target>`.
+# Zero args defaults to "." (current directory) — common case when running from
+# a project root in an IDE-integrated terminal.
 case "${#positional[@]}" in
+  0) target="." ;;
   1) target="${positional[0]}" ;;
   2)
     case "${positional[0]}" in
@@ -82,7 +87,6 @@ case "${#positional[@]}" in
         ;;
     esac
     ;;
-  0)  echo "Missing target directory." >&2; usage >&2; exit 1 ;;
   *)  echo "Too many positional args: ${positional[*]}" >&2; usage >&2; exit 1 ;;
 esac
 
