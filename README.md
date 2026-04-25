@@ -12,11 +12,14 @@ The target directory is optional — defaults to the current directory (`.`). Fr
 
 ### Linux / macOS / Git Bash / WSL
 
-Most common — run from the project root:
-
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh)
 ```
+
+<details>
+<summary>Other invocations</summary>
+
+<br>
 
 Install into a specific directory:
 
@@ -36,15 +39,20 @@ Pin to a release tag:
 ICP_REPO_REF=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh)
 ```
 
+</details>
+
 ### Windows PowerShell
 
 Requires bash on PATH — install [Git for Windows](https://git-scm.com/downloads) or use WSL.
 
-Most common — run from the project root:
-
 ```powershell
 curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash
 ```
+
+<details>
+<summary>Other invocations</summary>
+
+<br>
 
 Install into a specific directory:
 
@@ -57,6 +65,8 @@ Pin to a release tag:
 ```powershell
 $env:ICP_REPO_REF="v1.0.0"; curl.exe -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash
 ```
+
+</details>
 
 > PowerShell aliases `curl` to `Invoke-WebRequest` (different syntax), so the `.exe` suffix is required to hit the real binary. Process substitution `<(...)` doesn't exist in PowerShell — pipe through `bash` (or `bash -s --` to pass positional args) instead.
 
