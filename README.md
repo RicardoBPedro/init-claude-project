@@ -45,6 +45,18 @@ ICP_REPO_REF=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoB
 
 Requires bash on PATH — install [Git for Windows](https://git-scm.com/downloads) or use WSL.
 
+> ⚠ **Heads-up: WSL vs Git Bash.** When both WSL and Git for Windows are installed, the bare `bash` command on PowerShell usually resolves to **WSL bash**, not Git Bash. They are different environments with different home directories and different PATH:
+> - **Git Bash** sees your Windows-installed Claude Code, your `C:\Users\<you>\.claude\` config, and your project files natively.
+> - **WSL bash** is a separate Linux user with its own `/home/<you>/` — Windows installs are invisible.
+>
+> If you've installed Claude Code on Windows (via the installer or `winget install Anthropic.ClaudeCode`), force Git Bash explicitly:
+>
+> ```powershell
+> & "C:\Program Files\Git\bin\bash.exe" -c "curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash"
+> ```
+>
+> Or just open **Git Bash** directly from the Start menu and use the bash invocations from the previous section.
+
 ```powershell
 bash -c "curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh | bash"
 ```
