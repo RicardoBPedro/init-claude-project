@@ -129,6 +129,16 @@ preflight::_autoinstall_tool() {
   fi
 
   if [ -n "$cmd" ] && [ "$cmd" != "null" ]; then
+    # npm global installs fail with EACCES when Node was installed system-wide
+    # (apt install nodejs, system Homebrew, etc.) because /usr/lib/node_modules
+    # is root-owned. Pre-check writability so we skip the install and surface
+    # actionable guidance instead of letting the user stare at an npm error wall.
+    if [[ "$cmd" == *"npm install -g"* ]] && ! preflight::_npm_global_writable; then
+      ui::warn "Can't autoinstall $tool: npm's global directory isn't writable by your user."
+      preflight::_explain_npm_eacces "$cmd"
+      return 1
+    fi
+
     ui::info "$tool → $cmd"
     if ui::confirm "Install $tool now?" 1; then
       eval "$cmd" || { ui::warn "$tool install command returned error."; }
@@ -138,6 +148,24 @@ preflight::_autoinstall_tool() {
         return 0
       fi
       ui::error "$tool still missing after install."
+      # Fallback diagnostics for npm globals: either the prefix wasn't writable
+      # (EACCES the pre-check missed), or the install succeeded but the binary
+      # isn't on PATH yet (npm prefix in user-managed location, shell needs
+      # to re-source rc files).
+      if [[ "$cmd" == *"npm install -g"* ]]; then
+        if ! preflight::_npm_global_writable; then
+          preflight::_explain_npm_eacces "$cmd"
+        else
+          local prefix
+          prefix=$(npm config get prefix 2>/dev/null || echo "<unknown>")
+          echo ""
+          ui::dim "    Install ran but '$tool' isn't on PATH. Likely a shell PATH issue."
+          ui::dim "    Check that '$prefix/bin' is in PATH:"
+          ui::dim "      echo \"\$PATH\" | tr ':' '\\n' | grep -F '$prefix/bin'"
+          ui::dim "    If empty, add the directory to your shell rc and re-open the terminal."
+          echo ""
+        fi
+      fi
       return 1
     fi
     ui::warn "Skipped $tool install."
@@ -193,6 +221,47 @@ preflight::_check_claude_agents() {
   else
     ui::ok "Recommended agents present"
   fi
+}
+
+# Internal: check whether `npm install -g` would succeed without sudo.
+# Returns 0 if writable (or unknown — we'll let the install try), 1 if known-bad.
+preflight::_npm_global_writable() {
+  command -v npm >/dev/null 2>&1 || return 0  # no npm → install would fail for other reasons; don't preempt
+  local prefix
+  prefix=$(npm config get prefix 2>/dev/null || true)
+  [ -z "$prefix" ] && return 0
+  [ -d "$prefix" ] || return 0
+  # Writable if either the prefix itself or its lib/node_modules subdir is
+  # writable. (npm creates lib/node_modules on first global install if missing.)
+  if [ -w "$prefix" ] || { [ -d "$prefix/lib/node_modules" ] && [ -w "$prefix/lib/node_modules" ]; }; then
+    return 0
+  fi
+  return 1
+}
+
+# Internal: print actionable guidance for npm EACCES failures.
+preflight::_explain_npm_eacces() {
+  local cmd="$1"
+  local prefix who
+  prefix=$(npm config get prefix 2>/dev/null || echo "<unknown>")
+  who=$(whoami 2>/dev/null || echo "your user")
+  echo ""
+  ui::dim "    npm global directory: $prefix"
+  ui::dim "    Owner check: not writable by $who → most likely Node was installed"
+  ui::dim "    system-wide (e.g. 'apt install nodejs') so /usr/lib/node_modules is root-owned."
+  echo ""
+  ui::dim "    Three ways to fix:"
+  ui::dim "      1) Re-run the install command with sudo:"
+  ui::dim "         sudo $cmd"
+  ui::dim "      2) Use a Node version manager (recommended for dev machines —"
+  ui::dim "         globals go to your home dir, no sudo ever needed):"
+  ui::dim "         nvm: https://github.com/nvm-sh/nvm#installing-and-updating"
+  ui::dim "         fnm: https://github.com/Schniz/fnm#installation"
+  ui::dim "      3) Move npm's prefix to your home dir (one-time setup):"
+  ui::dim "         https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally"
+  echo ""
+  ui::dim "    After fixing, re-run install.sh."
+  echo ""
 }
 
 # Internal: warn on missing enabled plugins.
