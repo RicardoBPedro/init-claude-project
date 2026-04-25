@@ -11,6 +11,15 @@ __ICP_MANIFEST="$__ICP_ROOT_DIR/preflight-manifest.json"
 # shellcheck source=./ui.sh
 source "$__ICP_PREFLIGHT_DIR/ui.sh"
 
+# Wrap jq to strip carriage returns from output. Background: jq builds shipped
+# with Git for Windows / MSYS use a libc that does text-mode LF→CRLF translation
+# on stdout, so every -r line ends up as `value\r\n`. When read into bash, the
+# trailing \r corrupts $tool / $cmd / $url and breaks every downstream check
+# (visible symptom: tool names disappear from "not found" messages because the
+# \r returns the cursor and the next text overwrites them). Filtering once at
+# the source keeps every call site CR-safe without per-call boilerplate.
+jq() { command jq "$@" | tr -d '\r'; }
+
 # preflight::run <type:frontend|backend>
 # Returns 0 if all required tools present (possibly after autoinstall), 1 otherwise.
 preflight::run() {
