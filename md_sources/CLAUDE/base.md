@@ -149,3 +149,9 @@ From **public Claude Code plugins** — preflight warns if a plugin isn't enable
 ## Architecture
 
 Codebase map in `docs/architecture.md`. Session state in `.remember/now.md`. CLAUDE.md is a map of rules and commands, not a manual — use `grep` / `git log` for specifics.
+
+## Maintenance
+
+This file's goal is to **shrink over time**. Before adding a line, ask: *would a competent dev — or a current Claude model — already do this without being told?* If yes, don't add it.
+
+Audit quarterly. Anything Claude now handles natively is dead weight — every line is loaded into context every session, and the cost compounds across the team.
