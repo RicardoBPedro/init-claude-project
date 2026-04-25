@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 branch=$(git rev-parse --abbrev-ref HEAD)
 
-# Protected branches: standard convention + user-chosen main/staging (substituted
-# at install time). Empty placeholders are safely skipped by the word-split loop.
+# Protected branches (always enforced — independent of naming.conf).
+# Standard convention + user-chosen main/staging (substituted at install time).
+# Empty placeholders are safely skipped by the word-split loop.
 PROTECTED='main master homolog staging develop {{MAIN_BRANCH}} {{STAGING_BRANCH}}'
 
 for p in $PROTECTED; do
@@ -16,22 +17,29 @@ for p in $PROTECTED; do
   fi
 done
 
-# Validate naming convention.
-case "$branch" in
-  feat/*|fix/*|refactor/*|chore/*|test/*|docs/*|perf/*|style/*)
-    : # Conforms.
-    ;;
-  *)
-    echo ""
-    echo "ERROR: Branch name '$branch' doesn't match the naming convention."
-    echo "Expected prefix: feat/, fix/, refactor/, chore/, test/, docs/, perf/, style/"
-    echo "See CLAUDE.md > Gitflow."
-    echo ""
-    echo "Fix: rename with 'git branch -m $branch <prefix>/<slug>' before pushing."
-    echo ""
-    exit 1
-    ;;
-esac
+# Load project-specific naming convention (optional).
+BRANCH_NAME_REGEX=""
+BRANCH_NAME_FORMAT=""
+BRANCH_NAME_EXAMPLE=""
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+if [ -f "$repo_root/.husky/naming.conf" ]; then
+  # shellcheck disable=SC1091
+  . "$repo_root/.husky/naming.conf"
+fi
+
+if [ -n "$BRANCH_NAME_REGEX" ] && ! echo "$branch" | grep -qE "$BRANCH_NAME_REGEX"; then
+  echo ""
+  echo "ERROR: Branch name '$branch' doesn't match this project's convention."
+  echo ""
+  [ -n "$BRANCH_NAME_FORMAT" ]  && echo "  Format:  $BRANCH_NAME_FORMAT"
+  [ -n "$BRANCH_NAME_EXAMPLE" ] && echo "  Example: $BRANCH_NAME_EXAMPLE"
+  echo "  Regex:   $BRANCH_NAME_REGEX"
+  echo ""
+  echo "  Fix: rename via 'git branch -m $branch <new-name>' before pushing."
+  echo "  Edit .husky/naming.conf to adjust or disable the rule."
+  echo ""
+  exit 1
+fi
 
 # Secret scan.
 if [ -f scripts/check-secrets.sh ]; then

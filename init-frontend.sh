@@ -62,7 +62,16 @@ if ui::confirm "Include mutation testing guidance (Stryker)? Only useful if you'
   WITH_MUTATION=1
 fi
 
-export PROJECT_SUMMARY MAIN_BRANCH STAGING_BRANCH WITH_BRAZIL WITH_MUTATION
+# Naming conventions are project-specific and editable in .husky/naming.conf
+# post-install. Default ON; opt out per-check here. Defaults match the format
+# documented in CLAUDE.md > Commit Convention / Gitflow.
+ENFORCE_COMMIT_MSG=1
+ui::confirm "Enforce commit message convention? (default '[<TYPE>]#<task>: ...')" 1 || ENFORCE_COMMIT_MSG=0
+
+ENFORCE_BRANCH_NAME=1
+ui::confirm "Enforce branch naming convention? (default '<type>/<card>/<slug>')" 1 || ENFORCE_BRANCH_NAME=0
+
+export PROJECT_SUMMARY MAIN_BRANCH STAGING_BRANCH WITH_BRAZIL WITH_MUTATION ENFORCE_COMMIT_MSG ENFORCE_BRANCH_NAME
 
 # --- Confirm plan ---
 ui::section "Installation plan"
@@ -73,11 +82,13 @@ cat <<EOF
   Staging branch:         ${STAGING_BRANCH:-<none>}
   Brazil addendum:        $([ "$WITH_BRAZIL" = "1" ] && echo yes || echo no)
   Mutation addendum:      $([ "$WITH_MUTATION" = "1" ] && echo yes || echo no)
+  Commit-msg check:       $([ "$ENFORCE_COMMIT_MSG" = "1" ] && echo enabled || echo disabled)
+  Branch-name check:      $([ "$ENFORCE_BRANCH_NAME" = "1" ] && echo enabled || echo disabled)
   Will create:
     - $target/CLAUDE.md                      (base + frontend addendum)
     - $target/docs/troubleshooting.md
-    - $target/scripts/*.sh                    (branch-hygiene, branch-start, check-secrets, check-todo-budget, seed-memory)
-    - $target/.husky/{commit-msg,pre-push,pre-commit}
+    - $target/scripts/*.sh                    (branch-hygiene, branch-start, check-secrets, check-todo-budget, seed-memory, verify, hook-stop-verify)
+    - $target/.husky/{commit-msg,pre-push,pre-commit,naming.conf}
     - $target/.claude/settings.json           (SessionStart + pre-push hooks)
     - $target/.claude/memory-seeds/*.md       (7 universal seeds — activate via scripts/seed-memory.sh post-install)
     - $target/.gitattributes                  (pin LF for .sh / .husky)
@@ -113,7 +124,7 @@ Next steps:
   # Install frontend deps (if package.json exists / after npm init):
   npm install
   git add .
-  git commit -m "chore: bootstrap do workflow Claude Code"
+  git commit -m "[CHORE]#0: bootstrap Claude Code workflow (frontend)"
 
 After your first Claude Code session in this project (Claude creates its
 memory dir lazily), run this ONCE to seed the universal memories:

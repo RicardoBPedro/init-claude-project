@@ -29,6 +29,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash __PROJECT_ROOT__/scripts/hook-stop-verify.sh",
+            "timeout": 180,
+            "statusMessage": "Running quality gate (scripts/verify.sh)..."
+          }
+        ]
+      }
     ]
   }
 }

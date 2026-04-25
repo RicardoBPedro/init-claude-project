@@ -1,194 +1,91 @@
 # init-claude-project
 
-Bootstrap a new project with opinionated Claude Code conventions — universal working principles, local-only gitflow, branch hygiene, testing discipline, and stack-specific tuning for frontend (React + Vite + Vitest) or backend (Java + Spring + Gradle + Testcontainers).
+Opinionated bootstrap for projects that use [Claude Code](https://claude.com/claude-code). Installs working principles, a local-only gitflow, branch / commit hygiene, a quality-gate harness, and a stack-aware `CLAUDE.md` tuned to the project at hand.
 
-The workflow is **local-only**: it does NOT create PRs, merge branches, push to remote, or call any forge API (GitHub, GitLab, Azure DevOps, Bitbucket). Integration flow is your pipeline's responsibility — this toolkit just makes sure local discipline is tight so what you push is clean.
+**Scope is local only.** The toolkit does not push, open PRs, merge branches, or call any forge API — that is your pipeline's job.
 
 ## Quick start
 
-### One-liner (remote, via curl)
-
 ```bash
-# Frontend
-bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) frontend ./my-new-app
+# Remote (no clone needed)
+bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) ./my-project
 
-# Backend
-bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) backend ./my-new-api
+# Local (from a clone)
+./install.sh ./my-project
+
+# Pin a version
+ICP_REPO_REF=v1.0.0 bash <(curl -fsSL .../install.sh) ./my-project
 ```
 
-The bootstrap script clones the full toolkit to `~/.init-claude-project` (or updates an existing clone) and then runs the right entry point.
+`install.sh` is the single entry point. It auto-detects the stack and whether to run a fresh install or refresh an existing one — re-running the same command months later lands in upgrade mode automatically. Run with `--help` for overrides.
 
-Pin to a specific version via `ICP_REPO_REF` (branch or tag):
+## Supported stacks
 
-```bash
-ICP_REPO_REF=v1.0.0 bash <(curl -fsSL https://raw.githubusercontent.com/RicardoBPedro/init-claude-project/main/install.sh) frontend ./my-new-app
-```
+Each stack ships its own `CLAUDE.md` addendum with idiomatic patterns, anti-patterns, canonical commands and gotchas.
 
-### Local (from a clone)
+<details>
+<summary><b>25 stacks with dedicated addendums</b></summary>
 
-```bash
-git clone https://github.com/RicardoBPedro/init-claude-project.git
-cd init-claude-project
-./init-frontend.sh ./my-new-app      # or ./init-backend.sh ./my-new-api
-```
+**Frontend** — React / Next / Remix / Gatsby · Vue / Nuxt · Angular · Svelte / SvelteKit · Astro · SolidJS · Preact
 
-## What gets installed
+**Backend (JVM)** — Java + Spring (Gradle / Maven)
 
-Into the target project directory:
+**Backend (Node)** — NestJS · Fastify · Express · Koa / Hapi / Hono / Elysia
 
-- `CLAUDE.md` — universal working principles + gitflow + stack addendum (frontend or backend) + **optional addendums** (Brazil legal context, mutation testing guidance — prompted at install; skip them if unused to keep the file lean and save tokens at scale)
-- `docs/troubleshooting.md` — recurring issues catalog (Windows Docker context, zombie Testcontainers, flaky schedulers, etc.)
-- `scripts/branch-hygiene.sh` — detect stale / forgotten / non-main-forked local branches (strictly local, no forge API)
-- `scripts/branch-start.sh` — safe branch creator (refuses to fork from stale main)
-- `scripts/check-secrets.sh` — pre-push secret scan
-- `scripts/check-todo-budget.sh` — pre-commit check for un-IDed TODO / FIXME in staged changes
-- `scripts/test-backend.sh` — *(backend only)* gradle wrapper with Docker context fix for Windows
-- `.husky/commit-msg` — conventional-commits enforcer (format + length, language is documented convention)
-- `.husky/pre-push` — block direct push to protected branches + validate branch naming (`feat/`, `fix/`, etc.) + run check-secrets
-- `.husky/pre-commit` — check-todo-budget + lint-staged (frontend) or spotless check (backend)
-- `scripts/seed-memory.sh` — post-install helper that copies memory seeds into Claude Code's real memory dir (run once after first Claude session)
-- `scripts/hook-prepush-validate.sh` — wrapper used by `.claude/settings.json` PreToolUse hook to emit structured JSON decisions
-- `scripts/hook-sessionstart.sh` — wrapper used by `.claude/settings.json` SessionStart hook to surface branch-hygiene findings
+**Backend (Python)** — Django · FastAPI · Flask · NumPy / Pandas
 
-**Hooks use native git** (`core.hooksPath=.husky`) — no `husky` npm dependency. The installer configures this automatically if the target is already a git repo.
+**Backend (other)** — Go · Rust · Ruby on Rails · PHP / Laravel · Elixir / Phoenix · .NET / ASP.NET Core
 
-Into `$target/.claude/memory-seeds/` (project-local, activated on demand):
+**Mobile** — Flutter · Swift (iOS) · Kotlin (Android)
 
-- 6 universal feedback memories + 1 reference memory + MEMORY.md index + README.md explaining activation
-- Activate with `bash scripts/seed-memory.sh` after your first Claude Code session in the project (Claude creates the real memory dir lazily)
-- `.claude/settings.json` — SessionStart hook (branch-hygiene) + PreToolUse Bash hook (block push + secrets)
-- `.gitattributes` — pin LF for `.sh`, `.bash`, `.husky/*` (avoids Windows CRLF breakage)
-- `.gitignore` — appended entries for `.claude/settings.local.json`, `.remember/`, `docs/scrum/`
+</details>
 
-<!-- legacy note removed: memory seeds are now project-local and activated via scripts/seed-memory.sh — see above. -->
+If no signal matches, the installer falls back to a `base` install — universal scaffolding without a stack-specific addendum.
 
-## Preflight
+## What you get
 
-Before installing, the script validates:
+- `CLAUDE.md` with universal principles + gitflow + your stack's addendum
+- Native git hooks (`core.hooksPath=.husky`, no `husky` npm dep) wiring commit-msg, pre-commit, pre-push
+- Quality-gate skeleton (`scripts/verify.sh`) wired to a Stop hook so Claude can't declare "done" with a broken tree
+- Branch hygiene + secret scan + protected-branch push block
+- Project-local Claude memory seeds, activated on demand
+- `docs/troubleshooting.md` with recurring-issue catalog (Windows Docker, Testcontainers, …)
 
-**Tools (required):**
-- `git` — hard prerequisite (no autoinstall; [install guide](https://git-scm.com/downloads))
-- `bash` — Git Bash on Windows, native on Linux/macOS
-- `jq` — JSON parsing (autoinstalled via apt/dnf/pacman/brew/winget/scoop)
-- `python3` — used by hook commands to JSON-encode output
-- `node` + `npm` — frontend only
-- `java` — backend only (manual install; [Temurin](https://adoptium.net/))
-- `claude` — Claude Code CLI (autoinstalled via `npm install -g @anthropic-ai/claude-code`)
+## Commit / branch convention
 
-**Tools (optional):**
-- `docker` — backend only, needed for Testcontainers + compose
+Edit `.husky/naming.conf` — sourced by every hook run, no rebuild needed. Empty any `*_REGEX` to disable that check (the protected-branch push-block stays on regardless).
 
-**Claude Code globals (warn-only, non-fatal):**
-- `~/.claude/CLAUDE.md`, `~/.claude/settings.json` — required
-- Enabled plugins (public, from `claude-plugins-official`): `superpowers`, `code-review`, `feature-dev`, `pr-review-toolkit`, `claude-md-management`, `commit-commands`, `remember`
+Defaults:
 
-**Nothing else is installed or assumed.** The toolkit does NOT bundle or depend on any project-local skill / agent. If you author your own, add them to `.claude/` in the target project and reference them in `CLAUDE.md` — that's out of this toolkit's scope.
+| | Format | Example |
+|---|---|---|
+| Commit | `[<TYPE>]#<task>: <description>` | `[FEATURE]#12345: add refresh token rotation` |
+| Branch | `<type>/<card-number>/<slug>` | `feature/12345/login-redirect` |
 
-## Safety behaviors
-
-- **Overwrite protection**: the installer aborts BEFORE prompts if any target file it would write already exists (`CLAUDE.md`, `.claude/settings.json`, installed scripts, hooks). Prevents silent loss of user config.
-- **Executable bits**: shell scripts are committed with `100755`, so `./init-frontend.sh` works directly on Linux / macOS after `git clone`.
-- **First-commit secret scan**: `check-secrets.sh` falls back to scanning all tracked files when there's no upstream and no parent commit — initial commits can't slip secrets past the hook.
-- **No `rm -rf` of user paths**: the remote `install.sh` only touches `~/.init-claude-project` (its own cache). Your target project is never destructively modified.
-
-Missing required tools trigger an interactive autoinstall prompt (with the exact command shown). Declining cancels the install.
-
-## Directory layout
-
-```
-init-claude-project/
-├── README.md                          this file
-├── install.sh                         one-liner bootstrap + local dispatcher
-├── init-frontend.sh                   entry point — frontend projects
-├── init-backend.sh                    entry point — backend projects
-├── preflight-manifest.json            tool + globals manifest (edit to customize)
-├── lib/
-│   ├── ui.sh                          colored output + prompts + OS detection
-│   ├── preflight.sh                   validation + autoinstall
-│   └── copy.sh                        file operations + placeholder substitution
-├── md_sources/                        REVIEWABLE — all markdown copied/merged by the installer
-│   ├── CLAUDE/
-│   │   ├── base.md                    universal skeleton
-│   │   ├── frontend.md                frontend addendum
-│   │   ├── backend.md                 backend addendum
-│   │   ├── brazil.md                  Brazil legal addendum (opt-in at install)
-│   │   ├── mutation-frontend.md       mutation testing + Stryker (opt-in)
-│   │   └── mutation-backend.md        mutation testing + PITest (opt-in)
-│   ├── docs/
-│   │   └── troubleshooting.md         recurring-issue catalog
-│   └── memory-seeds/
-│       ├── MEMORY.md                  index
-│       ├── feedback_*.md              6 universal feedback memories
-│       └── reference_*.md             1 reference memory
-└── templates/                         non-md files (scripts, hooks, settings, gitattributes)
-    ├── root/                          files that land at project root
-    │   └── .gitattributes
-    ├── scripts/
-    │   ├── common/                    branch-hygiene.sh, branch-start.sh, check-secrets.sh
-    │   ├── frontend/                  (empty for now)
-    │   └── backend/                   test-backend.sh
-    ├── husky/
-    │   ├── common/                    commit-msg, pre-push
-    │   ├── frontend/                  pre-commit (lint-staged)
-    │   └── backend/                   pre-commit (spotless check)
-    └── claude/
-        └── settings.json.tmpl         __PROJECT_ROOT__ substituted at install
-```
+Conventional Commits and Jira-tagged presets ship commented inside the file — paste over the defaults to switch.
 
 ## Local-only gitflow
 
-This toolkit ONLY enforces local discipline:
+1. New branches start from an up-to-date `main` (`scripts/branch-start.sh`).
+2. Protected branches (`main`, `master`, `homolog`, `staging`, `develop`) cannot be pushed to directly.
+3. `scripts/branch-hygiene.sh` runs at session start and flags stale branches.
 
-1. Every new branch starts from an up-to-date `main` (use `scripts/branch-start.sh`).
-2. Branch naming: `feat/`, `fix/`, `refactor/`, `chore/`, `test/`, `docs/`, `perf/`, `style/`.
-3. Protected branches (`main`, `master`, `homolog`, `staging`, `develop`) can't be pushed to directly — Husky `pre-push` blocks it.
-4. Commit messages follow Conventional Commits — enforced by Husky `commit-msg`.
-5. `scripts/branch-hygiene.sh` runs at session start (via Claude Code SessionStart hook) and flags stale / forked-from-outdated branches.
+Push, PR, merge and pipeline triggering remain manual / pipeline responsibilities.
 
-It does NOT:
-- Create PRs
-- Merge branches
-- Push to remote automatically
-- Query GitHub, GitLab, Azure DevOps, or any forge API
+## Requirements
 
-Push, PR, merge, and pipeline triggering are **manual user actions** or pipeline responsibilities.
+`git`, `bash`, `jq`, `python3`, plus `node`+`npm` (frontend) or `java` (backend). Missing tools trigger an interactive autoinstall prompt. Full manifest in [`preflight-manifest.json`](preflight-manifest.json).
 
-## Placeholders substituted at install time
+## Layout
 
-In any file copied to the target:
-
-| Placeholder | Source | Default |
-|---|---|---|
-| `{{PROJECT_SUMMARY}}` | Prompted at install | *(empty — must be provided)* |
-| `{{MAIN_BRANCH}}` | Prompted at install | `main` |
-| `{{STAGING_BRANCH}}` | Prompted at install | *(empty — optional)* |
-| `__PROJECT_ROOT__` | Absolute target path | *(computed)* |
-
-The ticket prefix for TODOs (`// TODO [US-NNN]: ...`) is baked as `US`. Change it in the generated `CLAUDE.md` if your tracker uses a different prefix.
-
-## What's NOT included (by design)
-
-- GitHub integration (`gh` CLI, PR templates, CODEOWNERS)
-- Merge / PR workflow
-- CI / CD workflow files
-- Scrum folder committed to git (`docs/scrum/` is gitignored — real tracker lives in Azure DevOps or equivalent)
-- Feature-inventory maintenance discipline (opt-in via manual addendum)
-- Payment gateway or messaging SDKs (Asaas, Stripe, WhatsApp, SendGrid, etc.) — add them per project, they're too domain-specific to template
-
-## Updating the toolkit
-
-When the toolkit evolves:
-
-```bash
-cd ~/.init-claude-project   # or wherever you cloned
-git pull
 ```
-
-Subsequent runs of `install.sh` use the updated version. Existing target projects are NOT retroactively updated — re-run the installer if you want to refresh.
-
-## Extending
-
-All markdown lives in `md_sources/` — edit it directly, commit, and new projects will pick up the changes. Likewise for `templates/`. The preflight manifest is JSON — add tools or globals without touching the shell logic.
+init-claude-project/
+├── install.sh           single entry point (auto-detects stack + mode)
+├── init-*.sh            direct entry points for scripted setups
+├── lib/                 ui, preflight, copy primitives
+├── md_sources/          all markdown copied/merged into target projects
+└── templates/           non-md assets (scripts, hooks, settings)
+```
 
 ## License
 

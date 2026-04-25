@@ -5,10 +5,12 @@
 # Refuses to proceed if:
 #   - working tree is dirty
 #   - main is behind its upstream AND can't fast-forward
+#   - branch name doesn't match the project's BRANCH_NAME_REGEX (.husky/naming.conf)
 #
 # Usage:
-#   scripts/branch-start.sh feat/short-description
-#   scripts/branch-start.sh fix/bug-123
+#   scripts/branch-start.sh <branch-name>
+#
+# Naming convention is project-specific — see .husky/naming.conf.
 #
 # Env:
 #   MAIN_BRANCH=main    override integration branch (default: main)
@@ -19,18 +21,29 @@ MAIN_BRANCH="${MAIN_BRANCH:-main}"
 
 new_branch="${1:-}"
 if [ -z "$new_branch" ]; then
-  echo "Usage: $0 <type>/<short-description>" >&2
-  echo "  type = feat | fix | refactor | chore | test | docs | perf | style" >&2
+  echo "Usage: $0 <branch-name>" >&2
+  echo "  See .husky/naming.conf for this project's branch naming convention." >&2
   exit 1
 fi
 
-case "$new_branch" in
-  feat/*|fix/*|refactor/*|chore/*|test/*|docs/*|perf/*|style/*) : ;;
-  *)
-    echo "ERROR: branch name must start with feat/, fix/, refactor/, chore/, test/, docs/, perf/, or style/" >&2
-    exit 1
-    ;;
-esac
+# Load project-specific naming convention (optional).
+BRANCH_NAME_REGEX=""
+BRANCH_NAME_FORMAT=""
+BRANCH_NAME_EXAMPLE=""
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+if [ -f "$repo_root/.husky/naming.conf" ]; then
+  # shellcheck disable=SC1091
+  . "$repo_root/.husky/naming.conf"
+fi
+
+if [ -n "$BRANCH_NAME_REGEX" ] && ! echo "$new_branch" | grep -qE "$BRANCH_NAME_REGEX"; then
+  echo "ERROR: '$new_branch' doesn't match this project's branch naming convention." >&2
+  [ -n "$BRANCH_NAME_FORMAT" ]  && echo "  Format:  $BRANCH_NAME_FORMAT" >&2
+  [ -n "$BRANCH_NAME_EXAMPLE" ] && echo "  Example: $BRANCH_NAME_EXAMPLE" >&2
+  echo "  Regex:   $BRANCH_NAME_REGEX" >&2
+  echo "  Edit .husky/naming.conf to adjust or disable the rule." >&2
+  exit 1
+fi
 
 # 1. Working tree clean?
 if ! git diff --quiet || ! git diff --cached --quiet; then

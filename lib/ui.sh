@@ -6,25 +6,60 @@
 if [ -n "${__ICP_UI_SOURCED:-}" ]; then return 0; fi
 __ICP_UI_SOURCED=1
 
-# Colors — disabled when stdout isn't a TTY (CI, pipes)
-if [ -t 1 ]; then
+# Colors — disabled when stdout isn't a TTY (CI, pipes), when NO_COLOR is set
+# (https://no-color.org), or when ICP_NO_COLOR=1 is forced.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${ICP_NO_COLOR:-0}" != "1" ]; then
   C_RED=$'\033[0;31m'
   C_GREEN=$'\033[0;32m'
   C_YELLOW=$'\033[0;33m'
   C_BLUE=$'\033[0;34m'
+  C_CYAN=$'\033[0;36m'
   C_DIM=$'\033[2m'
   C_BOLD=$'\033[1m'
   C_RESET=$'\033[0m'
 else
-  C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_DIM=""; C_BOLD=""; C_RESET=""
+  C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_CYAN=""; C_DIM=""; C_BOLD=""; C_RESET=""
 fi
 
-ui::info()    { printf '%s[i]%s %s\n' "$C_BLUE"   "$C_RESET" "$*"; }
-ui::ok()      { printf '%s[ok]%s %s\n' "$C_GREEN"  "$C_RESET" "$*"; }
-ui::warn()    { printf '%s[!]%s %s\n'  "$C_YELLOW" "$C_RESET" "$*" >&2; }
-ui::error()   { printf '%s[x]%s %s\n'  "$C_RED"    "$C_RESET" "$*" >&2; }
-ui::section() { printf '\n%s== %s ==%s\n' "$C_BOLD" "$*" "$C_RESET"; }
-ui::dim()     { printf '%s%s%s\n'       "$C_DIM"   "$*" "$C_RESET"; }
+# Symbol set — Unicode by default when locale advertises UTF-8, ASCII fallback
+# otherwise. Override via ICP_UNICODE=0|1 (e.g. force on for Git Bash, which
+# renders UTF-8 fine but may have empty LANG).
+case "${ICP_UNICODE:-auto}" in
+  0|no|false|off) __ICP_UTF8=0 ;;
+  1|yes|true|on)  __ICP_UTF8=1 ;;
+  *)
+    case "${LC_ALL:-}${LC_CTYPE:-}${LANG:-}" in
+      *UTF-8*|*utf-8*|*UTF8*|*utf8*) __ICP_UTF8=1 ;;
+      *) __ICP_UTF8=0 ;;
+    esac
+    ;;
+esac
+
+if [ "$__ICP_UTF8" = "1" ]; then
+  S_INFO="ℹ"
+  S_OK="✓"
+  S_WARN="⚠"
+  S_ERROR="✗"
+  S_BULLET="•"
+  S_PROMPT="❯"
+  S_SECTION="▸"
+else
+  S_INFO="i"
+  S_OK="+"
+  S_WARN="!"
+  S_ERROR="x"
+  S_BULLET="*"
+  S_PROMPT=">"
+  S_SECTION=">"
+fi
+
+ui::info()    { printf '  %s%s%s %s\n' "$C_CYAN"   "$S_INFO"  "$C_RESET" "$*"; }
+ui::ok()      { printf '  %s%s%s %s\n' "$C_GREEN"  "$S_OK"    "$C_RESET" "$*"; }
+ui::warn()    { printf '  %s%s%s %s\n' "$C_YELLOW" "$S_WARN"  "$C_RESET" "$*" >&2; }
+ui::error()   { printf '  %s%s%s %s\n' "$C_RED"    "$S_ERROR" "$C_RESET" "$*" >&2; }
+ui::dim()     { printf '%s%s%s\n'      "$C_DIM"    "$*"       "$C_RESET"; }
+ui::bullet()  { printf '    %s%s%s %s\n' "$C_DIM"  "$S_BULLET" "$C_RESET" "$*"; }
+ui::section() { printf '\n%s%s %s%s\n' "$C_CYAN$C_BOLD" "$S_SECTION" "$*" "$C_RESET"; }
 
 # ui::confirm <prompt> [default_yes]
 # Returns 0 if yes, 1 if no. Default NO unless default_yes=1.
@@ -34,7 +69,10 @@ ui::confirm() {
   local default_str="[y/N]"
   [ "$default_yes" = "1" ] && default_str="[Y/n]"
   local reply
-  printf '%s%s%s %s ' "$C_BOLD" "$prompt" "$C_RESET" "$default_str" >&2
+  printf '  %s%s%s %s %s%s%s ' \
+    "$C_CYAN" "$S_PROMPT" "$C_RESET" \
+    "$prompt" \
+    "$C_DIM" "$default_str" "$C_RESET" >&2
   # Read from the controlling terminal so prompts work even when stdin is
   # piped (curl | bash bootstrap path).
   if [ -r /dev/tty ]; then
@@ -58,8 +96,10 @@ ui::ask() {
   local default="${2:-}"
   local reply
   local default_hint=""
-  [ -n "$default" ] && default_hint=" [$default]"
-  printf '%s%s%s%s: ' "$C_BOLD" "$prompt" "$default_hint" "$C_RESET" >&2
+  [ -n "$default" ] && default_hint=" $C_DIM[$default]$C_RESET"
+  printf '  %s%s%s %s%s: ' \
+    "$C_CYAN" "$S_PROMPT" "$C_RESET" \
+    "$prompt" "$default_hint" >&2
   if [ -r /dev/tty ]; then
     read -r reply </dev/tty || reply=""
   else
