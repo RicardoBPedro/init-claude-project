@@ -24,23 +24,15 @@ Windows: `gradlew.bat` or `scripts/test-backend.sh` (auto-picks the wrapper).
 
 ## Idiomatic patterns (DO)
 
-- **Records for DTOs / value objects** (Java 17+) — `public record UserDto(UUID id, String email) {}`.
-- **`@Transactional(readOnly = true)` on queries** — method-level, not class-blanket. Hibernate skips dirty-checking.
-- **`@RestControllerAdvice` for centralized error handling** — map domain exceptions to `ResponseEntity<ProblemDetail>` once.
+- **`@Transactional` at method level, not class-blanket** — opaque scope wraps non-DB methods. Use `readOnly = true` on queries.
 - **JdbcClient (Spring 6.1+) or JPA Specifications over String JPQL** — typed, refactor-safe.
-- **Virtual threads (Java 21+) where blocking I/O dominates** — `spring.threads.virtual.enabled=true`. Avoid for CPU-bound or `synchronized` holding locks across I/O.
-- **Testcontainers for integration tests** — `@Container static PostgreSQLContainer<?>` matches prod image. No H2 dialect lies.
+- **Virtual threads (Java 21+) for blocking I/O** — `spring.threads.virtual.enabled=true`. Avoid for CPU-bound work or `synchronized` holding locks across I/O.
 
 ## Anti-patterns (AVOID — call out and fix when seen)
 
-- **Field injection** (`@Autowired private UserService svc;`) — hides deps, breaks immutability. Use constructor injection.
-- **`@Transactional` on the entire service class** — opaque scope, wraps non-DB methods. Annotate methods.
-- **Catching `Exception` broadly without rethrow** — swallows `InterruptedException`. Catch specific or rethrow with `cause`.
-- **Lazy-load in serialization layer** — `LazyInitializationException` on detached entity. Fix with fetch joins, `@EntityGraph`, or DTO projection — never `OpenSessionInView`.
+- **Lazy-load in the serialization layer** — `LazyInitializationException` on detached entity. Fix with fetch joins, `@EntityGraph`, or DTO projection — never `OpenSessionInView`.
 - **Repository methods returning `Optional<List<T>>`** — empty list IS the absent state. Return `List<T>`.
-- **Indiscriminate `@MockBean`** in `@SpringBootTest` — invalidates context cache. Use Mockito in unit tests; reserve `@MockBean` for slice tests.
-- **`new RestTemplate()` ad-hoc** — inject `RestClient` (Spring 6.1+) or `WebClient` with timeouts and pooling.
-- **`Date`, `Calendar`, `SimpleDateFormat`** — use `java.time` (`Instant`, `LocalDate`, `OffsetDateTime`).
+- **Indiscriminate `@MockBean` in `@SpringBootTest`** — invalidates context cache, multiplies test time. Use Mockito in unit tests; reserve `@MockBean` for slice tests.
 
 ## Test layer hierarchy
 
@@ -64,6 +56,5 @@ Entity changes require a matching migration in the same PR. `ddl-auto=update` on
 
 - Windows + Testcontainers hang → `DOCKER_CONTEXT=desktop-linux`.
 - Killed Gradle run → zombie Ryuk + Postgres containers stall next `:test`.
-- Scheduler tests flake → wall clock leaked in; inject `Clock`.
-- Bean creation cycles → constructor injection surfaces them at startup; field injection masks until runtime.
+- Bean creation cycles surface at startup with constructor injection (the reason to prefer it); field injection masks them until runtime.
 - `@Async` + `@Transactional` on the same method → transaction does not propagate across thread boundary.

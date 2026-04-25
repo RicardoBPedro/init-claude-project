@@ -32,22 +32,16 @@ mypy .                                   # with django-stubs plugin
 
 ## Idiomatic patterns (DO)
 
-- **Split settings into `settings/base.py` + `dev.py` + `prod.py` + `test.py`** — `DJANGO_SETTINGS_MODULE` selects. Never branch on `DEBUG` for config.
-- **Custom managers + querysets for domain reads** — `User.objects.active().for_org(org)` beats scattered `.filter(is_active=True, org=org)`.
-- **`select_related` / `prefetch_related` by default on list views** — Django ORM is N+1 by default. Add `django-debug-toolbar`; treat unexpected query counts as bugs.
-- **Service layer for cross-model logic** — `services/billing.py` with pure functions; views stay thin.
-- **`Q` objects for OR/complex filters** — `Q(status="open") | Q(assignee=user)`; chained `.filter()` is AND only.
-- **`pytest-django` with `@pytest.mark.django_db`** — `--reuse-db` for fast iteration, `factory_boy` for fixtures, `Client`/`APIClient` for view tests.
+- **Settings split (`base.py` + `dev.py` + `prod.py` + `test.py`)** — `DJANGO_SETTINGS_MODULE` selects. Never branch on `DEBUG` for config.
+- **Custom managers + querysets for domain reads** — `User.objects.active().for_org(org)` over scattered `.filter(is_active=True, org=org)`.
+- **Service layer for cross-model logic** — `services/billing.py` with pure functions; views handle HTTP only.
+- **`select_related` / `prefetch_related` by default on list views** — treat unexpected query counts as bugs (`django-debug-toolbar`).
 - **Migrations small, reversible, reviewed** — one logical change per migration; always implement `RunPython.reverse_code`. Squash per release.
 
 ## Anti-patterns (AVOID — call out and fix when seen)
 
-- **Business logic in views or serializers** — extract to `services/`; views handle HTTP only.
 - **`Model.objects.all().filter(...)` chains crossing modules** — leaks ORM to callers. Wrap in a manager/queryset method.
 - **Signals (`post_save`) for in-domain logic** — invisible side effects, fire on every save including fixtures. Reserve for cross-domain decoupling; prefer explicit service calls.
-- **Raw SQL before profiling the ORM** — use `.explain()`, `select_related`, `Prefetch(queryset=...)` first. Drop to raw SQL only with a benchmark in the PR.
-- **`apps.get_model()` everywhere to dodge circular imports** — symptom of bad app boundaries; refactor.
-- **`ALLOWED_HOSTS = ["*"]` or `DEBUG = True` in prod** — Host header attacks, info disclosure. Pin hosts; assert `DEBUG is False` in `prod.py`.
 - **`ForeignKey(..., on_delete=models.CASCADE)` reflexively** — `PROTECT` / `SET_NULL` are often safer for audit data.
 - **Skipping `unique_together` / `UniqueConstraint`** — race conditions create duplicates. Constrain at DB layer, not in `clean()`.
 
