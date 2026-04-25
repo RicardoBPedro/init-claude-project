@@ -7,11 +7,14 @@
 #
 # For each non-protected local branch, the script evaluates:
 #   1. Fully merged into <main>? → healthy (safe to delete). Reported, not flagged.
-#   2. Age > STALE_DAYS AND not merged? → STALE UNMERGED. Flagged (exit 1).
-#   3. Merge-base with <main> older than STALE_BASE_DAYS? → OLD FORK POINT. Reported warn.
-#   4. Branch appears to have been forked from develop (or another non-main branch)?
+#   2. Age > STALE_DAYS AND not merged AND local-only (never pushed) → LOCAL-ONLY UNMERGED.
+#      Flagged (exit 1) — only this machine has the work, real lost-work risk.
+#   3. Age > STALE_DAYS AND not merged AND pushed → PARKED PUSHED. Reported as info
+#      only (no exit code) — code is safe on origin, branch is parked (review / QA / paused).
+#   4. Merge-base with <main> older than STALE_BASE_DAYS? → OLD FORK POINT. Reported warn.
+#   5. Branch appears to have been forked from develop (or another non-main branch)?
 #      → FORKED FROM NON-MAIN. Reported warn. Violates the "branch from main" rule.
-#   5. Otherwise → active.
+#   6. Otherwise → active.
 #
 # Env overrides:
 #   MAIN_BRANCH=main       override the integration branch name
@@ -24,8 +27,8 @@
 #   bash scripts/branch-hygiene.sh --json    # machine-readable
 #
 # Exit codes:
-#   0 — no stale unmerged branches (warnings still reported)
-#   1 — one or more stale unmerged branches detected
+#   0 — no LOCAL-ONLY stale unmerged branches (warnings + parked-pushed still reported)
+#   1 — one or more LOCAL-ONLY stale unmerged branches detected (real lost-work risk)
 
 set -eo pipefail
 
@@ -43,11 +46,23 @@ STALE_BASE_DAYS="${STALE_BASE_DAYS:-30}"
 
 PROTECTED_RE='^(master|main|homolog|staging|develop)$'
 
-STALE_UNMERGED=()
+STALE_UNMERGED=()       # local-only + stale → real lost-work risk (exit 1)
+PARKED_PUSHED=()        # pushed + stale → safe on origin, info only
 STALE_BASE=()
 FORKED_FROM_NONMAIN=()
 HEALTHY_MERGED=()
 ACTIVE=()
+
+# is_pushed <branch> — true if a remote-tracking ref exists OR an upstream is
+# configured. Strictly local (no `git fetch`). False negatives possible if the
+# user pruned a remote-tracking ref after the remote branch was deleted; that's
+# acceptable since at that point the user's machine IS the only copy again.
+is_pushed() {
+  local br="$1"
+  git rev-parse --verify --quiet "refs/remotes/origin/$br" >/dev/null 2>&1 && return 0
+  [ -n "$(git config --get "branch.$br.remote" 2>/dev/null)" ] && return 0
+  return 1
+}
 
 # Local branches only — never list remote-tracking refs.
 # Portable alternative to `mapfile -t` (bash 4+; macOS ships bash 3.2).
@@ -113,7 +128,11 @@ for br in "${BRANCHES[@]}"; do
   fi
 
   if [ "$age_days" -gt "$STALE_DAYS" ]; then
-    STALE_UNMERGED+=("$br|$age_days|$mb_main_age|$forked_nonmain")
+    if is_pushed "$br"; then
+      PARKED_PUSHED+=("$br|$age_days|$mb_main_age|$forked_nonmain")
+    else
+      STALE_UNMERGED+=("$br|$age_days|$mb_main_age|$forked_nonmain")
+    fi
   else
     ACTIVE+=("$br|$age_days|$mb_main_age|$forked_nonmain")
     if [ "$mb_main_age" -gt "$STALE_BASE_DAYS" ]; then
@@ -130,6 +149,13 @@ if [ "$JSON" = "1" ]; then
   printf '{"stale_unmerged":['
   sep=""
   for o in "${STALE_UNMERGED[@]}"; do
+    IFS='|' read -r n a mb fn <<< "$o"
+    printf '%s{"branch":"%s","age_days":%s,"merge_base_age_days":%s,"forked_from_nonmain":%s}' "$sep" "$n" "$a" "$mb" "$fn"
+    sep=","
+  done
+  printf '],"parked_pushed":['
+  sep=""
+  for o in "${PARKED_PUSHED[@]}"; do
     IFS='|' read -r n a mb fn <<< "$o"
     printf '%s{"branch":"%s","age_days":%s,"merge_base_age_days":%s,"forked_from_nonmain":%s}' "$sep" "$n" "$a" "$mb" "$fn"
     sep=","
@@ -170,10 +196,10 @@ fi
 if [ "${#STALE_UNMERGED[@]}" -gt 0 ]; then
   echo ""
   echo "=========================================="
-  echo "STALE UNMERGED BRANCHES (${#STALE_UNMERGED[@]})"
+  echo "LOCAL-ONLY UNMERGED BRANCHES (${#STALE_UNMERGED[@]})"
   echo "=========================================="
-  echo "Branches with unmerged commits AND no activity in $STALE_DAYS+ days."
-  echo "Resolve before starting new work — lost work is the worst failure mode."
+  echo "Unmerged commits, no activity in $STALE_DAYS+ days, and NEVER pushed to origin."
+  echo "Real lost-work risk — only this machine has them."
   echo ""
   for o in "${STALE_UNMERGED[@]}"; do
     IFS='|' read -r n a mb fn <<< "$o"
@@ -184,10 +210,29 @@ if [ "${#STALE_UNMERGED[@]}" -gt 0 ]; then
   echo ""
   echo "Options per branch:"
   echo "  (a) git checkout <branch> && git rebase $MAIN_BRANCH   # bring up to date, continue work"
-  echo "  (b) push to remote + open PR manually                  # if ready for review"
+  echo "  (b) git push -u origin <branch>                        # back up to remote first"
   echo "  (c) git branch -D <branch>                             # abandon (only after inspecting diff!)"
   echo ""
-  exit 1
+  EXIT_CODE=1
+else
+  EXIT_CODE=0
+fi
+
+if [ "${#PARKED_PUSHED[@]}" -gt 0 ] && [ "$QUIET" = "0" ]; then
+  echo ""
+  echo "=========================================="
+  echo "PARKED PUSHED BRANCHES (${#PARKED_PUSHED[@]})"
+  echo "=========================================="
+  echo "No activity in $STALE_DAYS+ days but already pushed — code is safe on origin."
+  echo "Worth a glance: any awaiting review, ready to merge, or ready to delete?"
+  echo ""
+  for o in "${PARKED_PUSHED[@]}"; do
+    IFS='|' read -r n a mb fn <<< "$o"
+    flag=""
+    [ "$fn" = "1" ] && flag="  [forked from non-main]"
+    printf '  - %-40s  age=%sd  fork=%sd%s\n' "$n" "$a" "$mb" "$flag"
+  done
+  echo ""
 fi
 
 if [ "${#FORKED_FROM_NONMAIN[@]}" -gt 0 ]; then
@@ -237,4 +282,4 @@ if [ "$QUIET" = "0" ]; then
   done
 fi
 
-exit 0
+exit "$EXIT_CODE"
