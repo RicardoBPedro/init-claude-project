@@ -135,7 +135,7 @@ preflight::_autoinstall_tool() {
     # actionable guidance instead of letting the user stare at an npm error wall.
     if [[ "$cmd" == *"npm install -g"* ]] && ! preflight::_npm_global_writable; then
       ui::warn "Can't autoinstall $tool: npm's global directory isn't writable by your user."
-      preflight::_explain_npm_eacces "$cmd"
+      preflight::_explain_npm_eacces "$tool" "$cmd"
       return 1
     fi
 
@@ -154,7 +154,7 @@ preflight::_autoinstall_tool() {
       # to re-source rc files).
       if [[ "$cmd" == *"npm install -g"* ]]; then
         if ! preflight::_npm_global_writable; then
-          preflight::_explain_npm_eacces "$cmd"
+          preflight::_explain_npm_eacces "$tool" "$cmd"
         else
           local prefix
           prefix=$(npm config get prefix 2>/dev/null || echo "<unknown>")
@@ -239,28 +239,29 @@ preflight::_npm_global_writable() {
   return 1
 }
 
-# Internal: print actionable guidance for npm EACCES failures.
+# Internal: print diagnostic + link to the tool's manual install guide for npm
+# EACCES failures. The fix is platform-specific (sudo / nvm / fnm / npm prefix
+# migration / Windows installers / macOS Homebrew), so we don't try to enumerate
+# remedies — the official docs cover their own platform matrix.
 preflight::_explain_npm_eacces() {
-  local cmd="$1"
-  local prefix who
+  local tool="$1"
+  local cmd="$2"
+  local prefix who guide_url
   prefix=$(npm config get prefix 2>/dev/null || echo "<unknown>")
   who=$(whoami 2>/dev/null || echo "your user")
+  guide_url=$(jq -r --arg t "$tool" '.tools[$t].manual_guide_url // empty' "$__ICP_MANIFEST")
   echo ""
-  ui::dim "    npm global directory: $prefix"
-  ui::dim "    Owner check: not writable by $who → most likely Node was installed"
-  ui::dim "    system-wide (e.g. 'apt install nodejs') so /usr/lib/node_modules is root-owned."
+  ui::dim "    npm global directory: $prefix (not writable by $who)"
+  ui::dim "    Most common cause: Node was installed by a system package manager,"
+  ui::dim "    so global packages land in a root-owned directory."
   echo ""
-  ui::dim "    Three ways to fix:"
-  ui::dim "      1) Re-run the install command with sudo:"
-  ui::dim "         sudo $cmd"
-  ui::dim "      2) Use a Node version manager (recommended for dev machines —"
-  ui::dim "         globals go to your home dir, no sudo ever needed):"
-  ui::dim "         nvm: https://github.com/nvm-sh/nvm#installing-and-updating"
-  ui::dim "         fnm: https://github.com/Schniz/fnm#installation"
-  ui::dim "      3) Move npm's prefix to your home dir (one-time setup):"
-  ui::dim "         https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally"
-  echo ""
-  ui::dim "    After fixing, re-run install.sh."
+  if [ -n "$guide_url" ] && [ "$guide_url" != "null" ]; then
+    ui::dim "    Install $tool manually following the official guide,"
+    ui::dim "    then re-run this installer:"
+    ui::dim "      $guide_url"
+  else
+    ui::dim "    Install $tool manually, then re-run this installer."
+  fi
   echo ""
 }
 
